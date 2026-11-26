@@ -1,1068 +1,1116 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="ru">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="theme-color" content="#11151a">
-  <meta name="description" content="Grafa — визуальный редактор идей, связей и переменных для проектирования и экспорта структуры в ИИ.">
-  <title>Grafa — визуальный редактор</title>
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/drawflow@0.0.59/dist/drawflow.min.css">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <script src="https://cdn.jsdelivr.net/npm/drawflow@0.0.59/dist/drawflow.min.js"></script>
-  <script src="https://unpkg.com/@phosphor-icons/web"></script>
-  <style>
-    :root {
-      color-scheme: dark;
-      --bg: #11151a;
-      --panel: #191f26;
-      --panel-2: #202832;
-      --panel-3: #252f3a;
-      --line: #303b47;
-      --line-soft: rgba(164, 180, 198, .11);
-      --text: #edf2f7;
-      --muted: #8d9aa8;
-      --muted-2: #687584;
-      --accent: #9eb4ca;
-      --accent-strong: #c2d1df;
-      --accent-soft: rgba(158, 180, 202, .13);
-      --variable: #c5b99e;
-      --danger: #d98d8d;
-      --shadow: 0 18px 55px rgba(0, 0, 0, .34);
-      --radius: 13px;
-    }
-    * { box-sizing: border-box; }
-    html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; }
-    body { background: var(--bg); color: var(--text); font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
-    button, input, textarea { font: inherit; }
-    button { color: inherit; }
-    .app-shell { width: 100%; height: 100%; position: relative; overflow: hidden; background: var(--bg); }
-    .topbar {
-      height: 66px; position: absolute; z-index: 100; top: 14px; left: 16px; right: 16px;
-      display: flex; align-items: center; gap: 10px; padding: 0 12px;
-      background: rgba(25, 31, 38, .94); border: 1px solid var(--line); border-radius: 14px;
-      box-shadow: 0 10px 35px rgba(0,0,0,.24); backdrop-filter: blur(16px);
-    }
-    .brand { display: flex; align-items: center; gap: 9px; min-width: 126px; padding: 0 8px 0 3px; }
-    .brand-mark { width: 31px; height: 31px; border-radius: 9px; background: #d5e0e9; color: #151c23; display: grid; place-items: center; font-size: 18px; }
-    .brand-name { font: 800 15px 'Manrope', sans-serif; letter-spacing: .11em; }
-    .brand-caption { color: var(--muted-2); font-size: 9px; letter-spacing: .12em; margin-top: 1px; }
-    .top-divider { width: 1px; height: 28px; background: var(--line); margin: 0 3px; }
-    .project-title { height: 36px; min-width: 100px; max-width: 240px; flex: 1 1 180px; color: var(--text); background: transparent; border: 1px solid transparent; border-radius: 8px; outline: 0; padding: 0 10px; font: 700 13px 'Manrope', sans-serif; }
-    .project-title:hover, .project-title:focus { background: rgba(255,255,255,.035); border-color: var(--line); }
-    .project-title::placeholder { color: #778493; }
-    .top-actions { display: flex; align-items: center; gap: 7px; margin-left: auto; }
-    .btn, .icon-btn {
-      display: inline-flex; align-items: center; justify-content: center; gap: 7px; height: 35px; padding: 0 11px;
-      border: 1px solid var(--line); border-radius: 8px; background: #222b35; color: #d8e0e8; cursor: pointer;
-      font-size: 12px; font-weight: 600; white-space: nowrap; transition: background .16s, border-color .16s, transform .16s;
-    }
-    .btn:hover, .icon-btn:hover { background: #2b3642; border-color: #4a5867; }
-    .btn:active, .icon-btn:active { transform: translateY(1px); }
-    .btn.primary { background: #d5e0e9; color: #17202a; border-color: #d5e0e9; }
-    .btn.primary:hover { background: #e5edf4; border-color: #e5edf4; }
-    .btn.quiet { background: transparent; }
-    .icon-btn { width: 35px; padding: 0; font-size: 16px; }
-    .btn i, .icon-btn i { font-size: 16px; }
-    .toolbar {
-      position: absolute; z-index: 90; left: 16px; top: 94px; bottom: 62px; width: 54px;
-      display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 9px 7px;
-      background: rgba(25, 31, 38, .92); border: 1px solid var(--line); border-radius: 12px;
-      box-shadow: 0 12px 34px rgba(0,0,0,.2); backdrop-filter: blur(14px);
-    }
-    .tool-btn { width: 38px; height: 38px; border: 1px solid transparent; border-radius: 9px; display: grid; place-items: center; background: transparent; color: #9ba8b5; cursor: pointer; font-size: 18px; transition: .15s; }
-    .tool-btn:hover { background: var(--panel-3); color: var(--text); border-color: #3b4855; }
-    .tool-btn.variable { color: var(--variable); }
-    .tool-separator { width: 26px; height: 1px; background: var(--line); margin: 3px 0; }
-    #drawflow {
-      position: absolute; inset: 0; overflow: hidden; cursor: default;
-      background-color: #12171d;
-      background-image: radial-gradient(rgba(148, 164, 180, .17) .8px, transparent .8px);
-      background-size: 22px 22px;
-    }
-    #drawflow .drawflow { width: 100%; height: 100%; position: relative; }
-    #drawflow .drawflow-node {
-      width: 224px; min-width: 224px; max-width: 280px; min-height: 84px; padding: 0;
-      background: #202832 !important; border: 1px solid #36424e !important; border-radius: 12px !important;
-      color: var(--text) !important; box-shadow: 0 9px 25px rgba(0,0,0,.23) !important;
-      transition: border-color .14s, box-shadow .14s, opacity .14s;
-    }
-    #drawflow .drawflow-node:hover { border-color: #627182 !important; }
-    #drawflow .drawflow-node.selected { border-color: #aebfd0 !important; box-shadow: 0 0 0 1px rgba(174,191,208,.35), 0 13px 30px rgba(0,0,0,.28) !important; }
-    #drawflow .drawflow-node.variable-node { background: #292a2b !important; border-color: #665f51 !important; }
-    #drawflow .drawflow-node.variable-node.selected { border-color: #c5b99e !important; box-shadow: 0 0 0 1px rgba(197,185,158,.28), 0 13px 30px rgba(0,0,0,.28) !important; }
-    #drawflow .drawflow-node .drawflow_content_node { padding: 0; border-radius: 12px; overflow: visible; }
-    .node-card { min-height: 82px; padding: 12px 14px 13px; display: flex; flex-direction: column; gap: 9px; }
-    .node-meta { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-    .node-kind { display: inline-flex; align-items: center; gap: 6px; color: #9ba9b7; font-size: 9px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; }
-    .node-kind i { font-size: 13px; }
-    .variable-node .node-kind { color: var(--variable); }
-    .node-number { color: #697887; font-size: 9px; font-weight: 700; }
-    .node-main-text { color: #eef3f7; font: 700 13px 'Manrope', sans-serif; line-height: 1.4; overflow-wrap: anywhere; min-height: 18px; }
-    .node-main-text.placeholder { color: #82909e; font-weight: 500; font-style: italic; }
-    .variable-node .node-main-text { color: #e2d9c9; }
-    .node-vars-display { color: #aebdcb; font-size: 10px; line-height: 1.4; display: none; overflow-wrap: anywhere; padding-top: 7px; border-top: 1px solid rgba(160,176,192,.12); }
-    .node-vars-display.has-vars { display: block; }
-    .variable-node .node-vars-display { color: #c5b99e; }
-    #drawflow .drawflow-node .input, #drawflow .drawflow-node .output { width: 10px; height: 10px; top: calc(50% - 5px); border: 2px solid #9eafbf; background: #202832; box-shadow: 0 0 0 3px rgba(158,175,191,.08); }
-    #drawflow .drawflow-node.variable-node .input, #drawflow .drawflow-node.variable-node .output { border-color: #c5b99e; background: #292a2b; }
-    #drawflow .drawflow-node .input:hover, #drawflow .drawflow-node .output:hover { background: #dce6ef; }
-    #drawflow .connection .main-path { stroke: #748494; stroke-width: 2.2px; fill: none; }
-    #drawflow .connection:hover .main-path { stroke: #c0cfdd; stroke-width: 2.8px; }
-    #drawflow .connection .point { stroke: #748494; fill: #12171d; }
-    #drawflow .connection.selected .main-path { stroke: #d0dce7; }
-    .statusbar {
-      position: absolute; z-index: 80; bottom: 15px; left: 16px; right: 16px; height: 36px;
-      display: flex; align-items: center; gap: 14px; padding: 0 11px;
-      border: 1px solid var(--line); border-radius: 10px; background: rgba(25,31,38,.92); backdrop-filter: blur(14px);
-      color: var(--muted); font-size: 10px; box-shadow: 0 8px 24px rgba(0,0,0,.18);
-    }
-    .save-state { display: inline-flex; align-items: center; gap: 6px; }
-    .save-dot { width: 6px; height: 6px; border-radius: 50%; background: #86aa94; }
-    .status-spacer { flex: 1; }
-    .zoom-tools { display: flex; align-items: center; gap: 4px; }
-    .zoom-tools button { border: 0; color: #9eacb9; background: transparent; width: 23px; height: 23px; border-radius: 5px; cursor: pointer; font-size: 14px; }
-    .zoom-tools button:hover { color: var(--text); background: #2a3440; }
-    .zoom-label { min-width: 38px; text-align: center; color: #c3cdd7; font-variant-numeric: tabular-nums; }
-    #inspector {
-      position: fixed; z-index: 120; width: 326px; display: flex; flex-direction: column; gap: 11px;
-      padding: 14px; background: rgba(28,35,43,.97); border: 1px solid #536170; border-radius: 12px;
-      box-shadow: var(--shadow); opacity: 0; pointer-events: none; transform: translateY(-5px);
-      transition: opacity .13s, transform .13s; backdrop-filter: blur(18px);
-    }
-    #inspector.open { opacity: 1; pointer-events: auto; transform: translateY(0); }
-    #inspector.dragging { opacity: .65; transition: none; }
-    .inspector-head { display: flex; align-items: center; justify-content: space-between; padding-bottom: 9px; border-bottom: 1px solid var(--line-soft); }
-    .inspector-title { display: flex; align-items: center; gap: 8px; color: #dfe7ef; font: 700 12px 'Manrope', sans-serif; }
-    .inspector-title i { color: var(--accent); font-size: 16px; }
-    .inspector-close { background: transparent; color: #8794a1; border: 0; cursor: pointer; font-size: 17px; display: grid; place-items: center; }
-    .field { display: flex; flex-direction: column; gap: 5px; position: relative; }
-    .field label { color: #8795a3; font-size: 9px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; }
-    .field input, .field textarea {
-      width: 100%; border: 1px solid #35414d; border-radius: 7px; color: var(--text); background: #141a20;
-      outline: 0; padding: 9px 10px; font-size: 12px; line-height: 1.45; transition: border-color .15s;
-    }
-    .field input:focus, .field textarea:focus { border-color: #91a5b8; }
-    .field input::placeholder, .field textarea::placeholder { color: #667482; }
-    .field textarea { height: 66px; resize: vertical; }
-    .field-hint { color: #697785; font-size: 9px; line-height: 1.4; }
-    .autocomplete-box {
-      position: absolute; z-index: 5; bottom: calc(100% + 6px); left: 0; right: 0;
-      display: none; align-items: center; justify-content: space-between; gap: 8px; padding: 7px 9px;
-      background: #d2dde7; color: #1b252e; border-radius: 7px; box-shadow: 0 7px 18px rgba(0,0,0,.25); cursor: pointer;
-      font-size: 11px; font-weight: 700;
-    }
-    .autocomplete-box.active { display: flex; }
-    .autocomplete-box kbd { font: 700 9px 'DM Sans'; border: 1px solid rgba(0,0,0,.2); border-radius: 4px; padding: 2px 5px; }
-    .delete-btn { height: 32px; display: flex; justify-content: center; align-items: center; gap: 7px; border: 1px solid rgba(217,141,141,.3); border-radius: 7px; background: rgba(217,141,141,.08); color: var(--danger); cursor: pointer; font-size: 11px; font-weight: 600; }
-    .delete-btn:hover { background: rgba(217,141,141,.16); }
-    .modal {
-      position: fixed; z-index: 300; inset: 0; display: none; align-items: center; justify-content: center;
-      padding: 24px; background: rgba(5,8,11,.73); backdrop-filter: blur(8px);
-    }
-    .modal.open { display: flex; }
-    .modal-card { width: min(560px, 94vw); max-height: min(720px, 90vh); display: flex; flex-direction: column; overflow: hidden; background: #1a2129; border: 1px solid #3a4652; border-radius: 15px; box-shadow: 0 28px 90px rgba(0,0,0,.55); }
-    .modal-card.wide { width: min(1120px, 96vw); height: min(760px, 92vh); max-height: 92vh; }
-    .modal-head { display: flex; align-items: center; justify-content: space-between; padding: 17px 19px; border-bottom: 1px solid var(--line); }
-    .modal-head h2 { font: 700 15px 'Manrope', sans-serif; margin: 0; }
-    .modal-head p { margin: 4px 0 0; color: var(--muted); font-size: 10px; }
-    .modal-body { padding: 17px 19px; overflow: auto; }
-    .modal-foot { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 13px 19px; border-top: 1px solid var(--line); }
-    .project-list { display: flex; flex-direction: column; gap: 8px; max-height: 430px; overflow: auto; }
-    .project-item { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px; border: 1px solid #35414d; border-radius: 9px; background: #202832; cursor: pointer; transition: .14s; }
-    .project-item:hover, .project-item.active { border-color: #8297aa; background: #26313c; }
-    .project-item-title { font: 700 12px 'Manrope'; color: #e5ecf3; }
-    .project-item-meta { color: #84919e; margin-top: 4px; font-size: 10px; }
-    .project-item-actions { display: flex; gap: 5px; }
-    .small-icon { width: 28px; height: 28px; display: grid; place-items: center; border: 1px solid #3d4853; border-radius: 6px; background: transparent; color: #9aa7b3; cursor: pointer; }
-    .small-icon:hover { color: var(--danger); border-color: rgba(217,141,141,.5); }
-    .empty-state { padding: 28px 12px; color: #84919e; text-align: center; border: 1px dashed #394550; border-radius: 9px; font-size: 11px; }
-    #ai-export-text { width: 100%; height: 390px; resize: vertical; padding: 11px; border: 1px solid #394550; border-radius: 8px; outline: 0; color: #d8e1e9; background: #11171d; font: 11px/1.6 ui-monospace, SFMono-Regular, Consolas, monospace; }
-    .simulation-layout { display: grid; grid-template-columns: minmax(0, 1fr) 275px; min-height: 0; flex: 1; }
-    .simulation-canvas { min-width: 0; min-height: 0; overflow: auto; margin: 15px; border: 1px solid #34414c; border-radius: 11px; background: #121920; background-image: radial-gradient(rgba(148,164,180,.12) .8px, transparent .8px); background-size: 20px 20px; }
-    #simulation-svg { display: block; min-width: 100%; }
-    .sim-side { display: flex; flex-direction: column; gap: 12px; padding: 17px; border-left: 1px solid var(--line); background: rgba(255,255,255,.012); }
-    .sim-overline { color: #8796a5; font-size: 9px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; }
-    .sim-progress { height: 4px; overflow: hidden; background: #303b46; border-radius: 4px; }
-    .sim-progress-fill { height: 100%; width: 0; background: #b6c6d5; transition: width .2s; }
-    .sim-current-title { margin: 0; color: #eef3f7; font: 700 16px/1.4 'Manrope'; overflow-wrap: anywhere; }
-    .sim-current-desc { color: #a3afbb; font-size: 11px; line-height: 1.6; overflow-wrap: anywhere; white-space: pre-wrap; }
-    .sim-tags { display: flex; flex-wrap: wrap; gap: 5px; }
-    .sim-tag { padding: 4px 7px; border: 1px solid #555044; border-radius: 5px; color: #c9bfae; background: rgba(197,185,158,.07); font-size: 9px; }
-    .sim-controls { display: flex; flex-wrap: wrap; gap: 6px; margin-top: auto; }
-    .sim-controls .btn { flex: 1; }
-    .sim-counter { color: #8f9ba7; font-size: 10px; font-variant-numeric: tabular-nums; }
-    .sim-node rect { fill: #202a34; stroke: #566777; stroke-width: 1.2; rx: 9; }
-    .sim-node.variable rect { fill: #2b2a27; stroke: #746b58; }
-    .sim-node text { fill: #e5ecf2; font: 600 11px 'DM Sans'; }
-    .sim-node .sim-kind { fill: #9ba9b6; font: 700 8px 'DM Sans'; letter-spacing: .8px; }
-    .sim-node.variable .sim-kind { fill: #c5b99e; }
-    .sim-node.done rect { stroke: #8ea99a; fill: #25322e; }
-    .sim-node.active rect { stroke: #d6e2ec; stroke-width: 2.2; fill: #334250; }
-    .sim-edge { fill: none; stroke: #607180; stroke-width: 1.7; opacity: .72; }
-    .sim-edge.traversed { stroke: #9eb7a8; stroke-width: 2.5; opacity: 1; }
-    .toast {
-      position: fixed; z-index: 500; left: 50%; bottom: 65px; transform: translate(-50%, 12px);
-      padding: 9px 13px; border: 1px solid #465462; border-radius: 8px; color: #e3ebf2; background: #252f39;
-      box-shadow: var(--shadow); opacity: 0; pointer-events: none; transition: .18s; font-size: 11px;
-    }
-    .toast.show { opacity: 1; transform: translate(-50%, 0); }
-    .help-tip { color: #83909d; font-size: 9px; line-height: 1.5; }
-    @media (max-width: 900px) {
-      .topbar { gap: 6px; left: 8px; right: 8px; top: 8px; height: 58px; padding: 0 7px; }
-      .brand { min-width: 38px; padding: 0; } .brand-copy, .top-divider { display: none; }
-      .btn .btn-label { display: none; } .btn { width: 35px; padding: 0; }
-      .toolbar { left: 8px; top: 76px; bottom: 55px; }
-      .statusbar { left: 8px; right: 8px; bottom: 8px; }
-      #inspector { width: min(326px, calc(100vw - 24px)); }
-      .simulation-layout { grid-template-columns: 1fr; grid-template-rows: minmax(260px, 1fr) auto; overflow: auto; }
-      .sim-side { border-left: 0; border-top: 1px solid var(--line); }
-      .modal-card.wide { height: 94vh; }
-    }
-    @media (max-width: 540px) {
-      .top-actions { gap: 4px; } .project-title { max-width: 112px; font-size: 11px; }
-      .toolbar { width: 46px; padding: 7px 4px; } .tool-btn { width: 34px; height: 34px; }
-      .statusbar { gap: 7px; } .status-hint { display: none; }
-      .modal { padding: 8px; }
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Grafa — визуальный редактор</title>
+    <link href="https://cdn.jsdelivr.net/npm/drawflow@0.0.59/dist/drawflow.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/drawflow@0.0.59/dist/drawflow.min.js"></script>
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <style>
+        :root {
+            --bg-color: #0d1117;
+            --panel-bg: #161b22;
+            --node-bg: #21262d;
+            --node-border: #30363d;
+            --accent: #8fa9c2;
+            --text-main: #c9d1d9;
+            --text-muted: #8b949e;
+            --danger: #f85149;
+            --accent-glow: rgba(143, 169, 194, 0.14);
+            --variable: #c5b99e;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+
+        body { background-color: var(--bg-color); color: var(--text-main); overflow: hidden; height: 100vh; display: flex; }
+
+        /* Холст */
+        #drawflow { 
+            flex-grow: 1; height: 100vh; position: relative; 
+            background-image: radial-gradient(#30363d 1px, transparent 1px);
+            background-size: 20px 20px;
+            cursor: default;
+        }
+        #drawflow:active { cursor: grabbing; }
+
+        /* Верхняя панель */
+        .topbar {
+            position: absolute; top: 15px; left: 15px; display: flex; gap: 10px; z-index: 100;
+            background: var(--panel-bg); padding: 8px; border-radius: 8px;
+            border: 1px solid var(--node-border); box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+            align-items: center;
+        }
+
+        button {
+            background: var(--node-bg); color: var(--text-main); border: 1px solid var(--node-border); 
+            padding: 6px 12px; border-radius: 6px; cursor: pointer; font-weight: 500; font-size: 13px;
+            transition: all 0.15s ease; display: flex; align-items: center; gap: 6px;
+        }
+        button:hover { background: var(--node-border); color: #fff; }
+        button.primary { background: var(--accent); color: #000; border-color: var(--accent); }
+        button.primary:hover { background: #79b8ff; }
+
+        /* Название проекта */
+        .project-name {
+            background: transparent; border: 1px solid transparent; color: #fff; font-size: 14px;
+            font-weight: 600; padding: 6px 10px; border-radius: 6px; outline: none; width: 160px;
+            transition: background 0.2s; text-overflow: ellipsis;
+        }
+        .project-name:hover, .project-name:focus { background: var(--bg-color); border-color: var(--node-border); }
+
+        /* Стилизация нод */
+        .drawflow-node { 
+            background: var(--node-bg) !important; 
+            border: 1px solid var(--node-border) !important; 
+            border-radius: 8px !important; 
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3) !important; 
+            color: var(--text-main) !important; 
+            min-width: 180px; max-width: 250px;
+            transition: border-color 0.15s, box-shadow 0.15s;
+        }
+        .drawflow-node:hover { border-color: #596675 !important; }
+        .drawflow-node.variable-node { background: #292a2b !important; border-color: #665f51 !important; }
+        .drawflow-node.variable-node.selected { border-color: var(--variable) !important; box-shadow: 0 0 0 1px rgba(197,185,158,.28) !important; }
+        .variable-node .node-main-text { color: #e2d9c9; }
+        .node-kind { color: var(--text-muted); font-size: 9px; letter-spacing: .09em; text-transform: uppercase; margin-bottom: 5px; }
+        .variable-node .node-kind { color: var(--variable); }
+        .variable-node .node-vars-display { color: var(--variable); }
+        .drawflow-node.selected { 
+            border-color: var(--accent) !important; 
+            box-shadow: 0 0 0 1px var(--accent) !important; 
+        }
+        
+        .drawflow-content { 
+            padding: 12px 15px; font-size: 14px; font-weight: 500; text-align: center; 
+            min-height: 44px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 5px;
+        }
+        .drawflow-node { user-select: none; }
+        .drawflow-node .node-main-text { overflow-wrap: anywhere; line-height: 1.4; }
+        .node-main-text:empty::before {
+            content: 'Пустая нода'; color: var(--text-muted); font-style: italic; font-weight: 400; font-size: 13px;
+        }
+        .node-vars-display {
+            font-size: 11px; color: var(--accent); background: rgba(88, 166, 255, 0.1); 
+            padding: 2px 6px; border-radius: 4px; display: none;
+        }
+        .node-vars-display.has-vars { display: block; }
+
+        /* Линии связей */
+        .drawflow .connection .main-path { stroke: #8b949e !important; stroke-width: 2px; }
+        .drawflow .connection:hover .main-path { stroke: var(--accent) !important; stroke-width: 3px; }
+        .drawflow .connection .point { stroke: #8b949e !important; fill: var(--bg-color) !important; }
+
+        /* Инспектор */
+        #inspector {
+            position: fixed; width: 320px; background: var(--panel-bg);
+            border: 1px solid var(--node-border); border-radius: 8px; padding: 15px;
+            display: flex; flex-direction: column; gap: 12px;
+            box-shadow: 0 12px 32px rgba(0,0,0,0.5); z-index: 1000;
+            opacity: 0; transform: translateY(-5px); pointer-events: none; 
+            transition: opacity 0.15s, transform 0.15s, border-color 0.15s;
+        }
+        #inspector.open { opacity: 1; transform: translateY(0); pointer-events: auto; border-color: var(--accent); }
+        #inspector.dragging { opacity: 0.65; border-color: var(--node-border); transition: none; }
+
+        label { font-size: 11px; color: var(--text-muted); text-transform: uppercase; font-weight: 600; margin-bottom: 4px; display: block; }
+        input, textarea {
+            width: 100%; background: var(--bg-color); border: 1px solid var(--node-border); color: var(--text-main);
+            padding: 8px 10px; border-radius: 6px; font-size: 13px; outline: none; transition: border 0.2s;
+        }
+        input:focus, textarea:focus { border-color: var(--accent); }
+        textarea { resize: none; height: 60px; }
+        
+        .btn-delete {
+            background: rgba(248, 81, 73, 0.1); color: var(--danger); border-color: rgba(248, 81, 73, 0.4);
+            justify-content: center; margin-top: 5px;
+        }
+        .btn-delete:hover { background: var(--danger); color: white; border-color: var(--danger); }
+
+        /* Автокомплит */
+        .autocomplete-box {
+            position: absolute; top: -35px; left: 0; right: 0;
+            background: var(--accent); color: #000; font-size: 12px; font-weight: 600;
+            padding: 6px 10px; border-radius: 6px; display: none; align-items: center; justify-content: space-between;
+            box-shadow: 0 4px 12px var(--accent-glow); cursor: pointer;
+        }
+        .autocomplete-box.active { display: flex; }
+        .autocomplete-box kbd {
+            background: rgba(0,0,0,0.2); padding: 2px 6px; border-radius: 4px; font-family: inherit;
+        }
+        .input-wrapper { position: relative; }
+
+        .statusbar { position: fixed; z-index: 80; bottom: 12px; left: 15px; display: flex; align-items: center; gap: 12px; padding: 7px 10px; background: rgba(22,27,34,.94); border: 1px solid var(--node-border); border-radius: 7px; color: var(--text-muted); font-size: 11px; box-shadow: 0 5px 18px rgba(0,0,0,.25); }
+        .status-dot { width: 6px; height: 6px; border-radius: 50%; background: #8ea99a; }
+        .statusbar .spacer { width: 1px; height: 13px; background: var(--node-border); }
+        .status-hint { color: #7f8b98; }
+        .variable-node .input, .variable-node .output { border-color: var(--variable) !important; }
+
+        .simulation-modal { width: min(1240px, 96vw); height: min(850px, 92vh); max-width: none; max-height: none; padding: 0; overflow: hidden; }
+        .simulation-head { display: flex; align-items: center; justify-content: space-between; padding: 15px 18px; border-bottom: 1px solid var(--node-border); }
+        .simulation-head h3 { margin: 0; }
+        .simulation-body { display: grid; grid-template-columns: minmax(0,1fr) 280px; min-height: 0; flex: 1; }
+        .simulation-canvas { min-width: 0; min-height: 0; overflow: auto; margin: 14px; border: 1px solid var(--node-border); border-radius: 8px; background: #10151b; background-image: radial-gradient(#303b46 .8px, transparent .8px); background-size: 20px 20px; }
+        #simulation-svg { display: block; min-width: 100%; }
+        .sim-side { display: flex; flex-direction: column; gap: 10px; padding: 16px; border-left: 1px solid var(--node-border); }
+        .sim-side label { margin: 0; }
+        .sim-step-title { color: #fff; font-size: 16px; font-weight: 650; line-height: 1.35; overflow-wrap: anywhere; }
+        .sim-step-desc { color: var(--text-muted); font-size: 12px; line-height: 1.55; white-space: pre-wrap; overflow-wrap: anywhere; }
+        .sim-tags { color: var(--variable); font-size: 11px; line-height: 1.5; }
+        .sim-progress { height: 4px; background: #303b46; border-radius: 5px; overflow: hidden; }
+        .sim-progress > div { height: 100%; width: 0; background: #9eb4c8; transition: width .2s; }
+        .sim-controls { display: flex; flex-wrap: wrap; gap: 6px; margin-top: auto; }
+        .sim-controls button { flex: 1; justify-content: center; }
+        .sim-node rect { fill: #212a34; stroke: #526171; stroke-width: 1.4; rx: 8; }
+        .sim-node.variable rect { fill: #2b2a27; stroke: #746b58; }
+        .sim-node text { fill: #e5ebf1; font-size: 12px; font-weight: 600; }
+        .sim-node .sim-kind { fill: #9ba7b3; font-size: 8px; font-weight: 700; letter-spacing: 1px; }
+        .sim-node.variable .sim-kind { fill: #c5b99e; }
+        .sim-node.active rect { stroke: #d1dce6; stroke-width: 2.2; fill: #344250; }
+        .sim-node.done rect { stroke: #83998c; fill: #26332e; }
+        .sim-edge { fill: none; stroke: #607080; stroke-width: 1.8; opacity: .78; }
+        .sim-edge.traversed { stroke: #9eb7a8; stroke-width: 2.5; opacity: 1; }
+        .empty-hint { color: var(--text-muted); font-size: 13px; text-align: center; padding: 24px 10px; }
+        @media (max-width: 760px) { .simulation-body { grid-template-columns: 1fr; grid-template-rows: minmax(260px,1fr) auto; overflow: auto; } .sim-side { border-left: 0; border-top: 1px solid var(--node-border); } .status-hint { display:none; } }
+
+        /* Модальные окна */
+        .modal {
+            display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.6); z-index: 2000; justify-content: center; align-items: center;
+            backdrop-filter: blur(4px);
+        }
+        .modal-content {
+            background: var(--panel-bg); padding: 20px; border-radius: 10px; width: 500px; max-width: 90%;
+            border: 1px solid var(--node-border); max-height: 80vh; display: flex; flex-direction: column;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.6);
+        }
+        .modal-content h3 { color: #fff; margin-bottom: 15px; font-size: 16px; }
+        
+        /* Список проектов */
+        .project-list { display: flex; flex-direction: column; gap: 8px; overflow-y: auto; max-height: 400px; margin-bottom: 15px; }
+        .project-item {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 10px; background: var(--node-bg); border: 1px solid var(--node-border);
+            border-radius: 6px; cursor: pointer; transition: border-color 0.2s;
+        }
+        .project-item:hover { border-color: var(--accent); }
+        .project-item.active { border-color: var(--accent); background: rgba(88, 166, 255, 0.1); }
+        .project-date { font-size: 11px; color: var(--text-muted); }
+
+        #export-modal textarea { flex-grow: 1; margin-top: 10px; height: 300px; font-family: monospace; font-size: 12px; resize: vertical; }
+    </style>
 </head>
 <body>
-<div class="app-shell">
-  <header class="topbar">
-    <div class="brand">
-      <div class="brand-mark"><i class="ph ph-graph"></i></div>
-      <div class="brand-copy"><div class="brand-name">GRAFA</div><div class="brand-caption">THINK IN CONNECTIONS</div></div>
+
+    <div class="topbar">
+        <button class="primary" id="add-node-button" title="Добавить ноду (N)"><i class="ph ph-plus"></i> Нода</button>
+        <button id="add-variable-button" title="Добавить переменную (V)"><i class="ph ph-brackets-curly"></i> Переменная</button>
+        <button id="projects-button"><i class="ph ph-folders"></i> Проекты</button>
+        <input type="text" id="current-project-name" class="project-name" placeholder="Без названия" autocomplete="off" aria-label="Название проекта">
+        <button id="import-button" title="Импорт JSON"><i class="ph ph-upload-simple"></i></button>
+        <button id="export-button" title="Скачать JSON"><i class="ph ph-download"></i></button>
+        <button id="ai-button" title="Экспорт для ИИ"><i class="ph ph-brain"></i> ИИ</button>
+        <button id="simulation-button" title="Просмотр структуры"><i class="ph ph-play-circle"></i> Просмотр</button>
+        <input type="file" id="file-input" hidden accept=".json,application/json">
     </div>
-    <div class="top-divider"></div>
-    <input id="project-title" class="project-title" type="text" placeholder="Без названия" aria-label="Название проекта" autocomplete="off">
-    <div class="top-actions">
-      <button class="btn quiet" id="projects-button" title="Проекты"><i class="ph ph-squares-four"></i><span class="btn-label">Проекты</span></button>
-      <button class="btn quiet" id="import-button" title="Импорт JSON"><i class="ph ph-upload-simple"></i><span class="btn-label">Импорт</span></button>
-      <button class="btn quiet" id="export-button" title="Скачать JSON"><i class="ph ph-download-simple"></i><span class="btn-label">JSON</span></button>
-      <button class="btn quiet" id="ai-button" title="Экспорт для ИИ"><i class="ph ph-brain"></i><span class="btn-label">Для ИИ</span></button>
-      <button class="btn primary" id="simulate-button" title="Открыть симуляцию"><i class="ph ph-play-circle"></i><span class="btn-label">Симуляция</span></button>
-    </div>
-    <input type="file" id="file-input" hidden accept=".json,application/json">
-  </header>
 
-  <nav class="toolbar" aria-label="Инструменты">
-    <button class="tool-btn" id="add-node-button" title="Добавить ноду (N)"><i class="ph ph-plus-circle"></i></button>
-    <button class="tool-btn variable" id="add-variable-button" title="Добавить переменную (V)"><i class="ph ph-brackets-curly"></i></button>
-    <div class="tool-separator"></div>
-    <button class="tool-btn" id="fit-button" title="Вместить граф (F)"><i class="ph ph-arrows-out-simple"></i></button>
-    <button class="tool-btn" id="center-button" title="Вернуться к центру"><i class="ph ph-crosshair"></i></button>
-    <div class="tool-separator"></div>
-    <button class="tool-btn" id="help-button" title="Подсказки"><i class="ph ph-keyboard"></i></button>
-  </nav>
+    <div id="drawflow"></div>
 
-  <main id="drawflow" aria-label="Рабочее поле графа"></main>
-
-  <div id="inspector" aria-label="Редактор ноды">
-    <div class="inspector-head">
-      <div class="inspector-title"><i class="ph ph-cursor-text" id="inspector-icon"></i><span id="inspector-heading">Редактирование ноды</span></div>
-      <button class="inspector-close" id="inspector-close" title="Закрыть"><i class="ph ph-x"></i></button>
-    </div>
-    <div class="field">
-      <div class="autocomplete-box" id="autocomplete"><span>Дополнить: <strong id="autocomplete-text"></strong></span><kbd>Enter</kbd></div>
-      <label id="node-text-label" for="node-text">Содержание</label>
-      <input id="node-text" type="text" placeholder="Начни записывать идею..." autocomplete="off">
-    </div>
-    <div class="field">
-      <label for="node-vars">Переменные и теги</label>
-      <input id="node-vars" type="text" placeholder="#контекст  #сервис  @роль" autocomplete="off">
-      <div class="field-hint">Можно перечислять через пробел или запятую.</div>
-    </div>
-    <div class="field">
-      <label for="node-desc">Контекст для ИИ</label>
-      <textarea id="node-desc" placeholder="Здесь можно объяснить детали, ограничения и ожидаемый результат..."></textarea>
-    </div>
-    <button class="delete-btn" id="delete-node-button"><i class="ph ph-trash"></i> Удалить ноду <span style="opacity:.65">· Backspace</span></button>
-  </div>
-
-  <footer class="statusbar">
-    <span class="save-state"><span class="save-dot" id="save-dot"></span><span id="save-status">Сохранено</span></span>
-    <span id="node-count">0 нод</span>
-    <span id="connection-count">0 связей</span>
-    <span class="status-spacer"></span>
-    <span class="status-hint">ЛКМ — выбрать / соединить&nbsp;&nbsp;·&nbsp;&nbsp;ПКМ — двигать&nbsp;&nbsp;·&nbsp;&nbsp;колесо — масштаб&nbsp;&nbsp;·&nbsp;&nbsp;колёсико — новая нода</span>
-    <div class="zoom-tools"><button id="zoom-out" title="Отдалить">−</button><span class="zoom-label" id="zoom-label">100%</span><button id="zoom-in" title="Приблизить">+</button></div>
-  </footer>
-</div>
-
-<div class="modal" id="projects-modal" role="dialog" aria-modal="true" aria-labelledby="projects-heading">
-  <section class="modal-card">
-    <header class="modal-head"><div><h2 id="projects-heading">Проекты</h2><p>Недавно открытые и сохранённые графы</p></div><button class="icon-btn" data-close="projects-modal"><i class="ph ph-x"></i></button></header>
-    <div class="modal-body"><div class="project-list" id="projects-list"></div></div>
-    <footer class="modal-foot"><span class="help-tip">Проекты сохраняются в этом браузере автоматически.</span><button class="btn primary" id="new-project-button"><i class="ph ph-plus"></i> Новый проект</button></footer>
-  </section>
-</div>
-
-<div class="modal" id="export-modal" role="dialog" aria-modal="true" aria-labelledby="export-heading">
-  <section class="modal-card">
-    <header class="modal-head"><div><h2 id="export-heading">Структура для ИИ</h2><p>Текстовое описание нод, переменных и связей</p></div><button class="icon-btn" data-close="export-modal"><i class="ph ph-x"></i></button></header>
-    <div class="modal-body"><textarea id="ai-export-text" readonly spellcheck="false"></textarea></div>
-    <footer class="modal-foot"><span class="help-tip">Можно скопировать и вставить в любой ИИ-чат.</span><button class="btn primary" id="copy-ai-button"><i class="ph ph-copy"></i> Скопировать</button></footer>
-  </section>
-</div>
-
-<div class="modal" id="simulation-modal" role="dialog" aria-modal="true" aria-labelledby="simulation-heading">
-  <section class="modal-card wide">
-    <header class="modal-head"><div><h2 id="simulation-heading">Просмотр структуры</h2><p>Визуальный проход по связям графа — без исполнения кода</p></div><button class="icon-btn" data-close="simulation-modal"><i class="ph ph-x"></i></button></header>
-    <div class="simulation-layout">
-      <div class="simulation-canvas"><svg id="simulation-svg" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Визуализация структуры"></svg></div>
-      <aside class="sim-side">
-        <div class="sim-overline">Текущий узел</div>
-        <div class="sim-progress"><div class="sim-progress-fill" id="sim-progress-fill"></div></div>
-        <div class="sim-counter" id="sim-counter">Ожидание запуска</div>
-        <h3 class="sim-current-title" id="sim-current-title">Граф готов к просмотру</h3>
-        <div class="sim-current-desc" id="sim-current-desc">Запусти просмотр, чтобы пройти по узлам и посмотреть их контекст.</div>
-        <div class="sim-overline">Переменные и теги</div>
-        <div class="sim-tags" id="sim-tags"><span class="help-tip">Нет активных тегов</span></div>
-        <div class="sim-controls">
-          <button class="btn" id="sim-reset"><i class="ph ph-arrow-counter-clockwise"></i> Сначала</button>
-          <button class="btn" id="sim-play"><i class="ph ph-play"></i> Старт</button>
-          <button class="btn primary" id="sim-next"><i class="ph ph-skip-forward"></i> Далее</button>
+    <!-- Инспектор -->
+    <div id="inspector">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:2px">
+            <strong style="font-size:13px;color:#fff">Редактор ноды</strong>
+            <button id="inspector-close" type="button" title="Закрыть" style="padding:4px 8px">×</button>
         </div>
-      </aside>
+        <div class="input-wrapper">
+            <div class="autocomplete-box" id="autocomplete">
+                <span>Подставить: <span id="autocomplete-text"></span></span>
+                <kbd>Enter</kbd>
+            </div>
+            <label id="node-text-label">Текст ноды</label>
+            <input type="text" id="node-text" placeholder="Введите мысль..." autocomplete="off">
+        </div>
+        <div>
+            <label>Переменные и теги</label>
+            <input type="text" id="node-vars" placeholder="Например: #инструмент #меч" autocomplete="off">
+        </div>
+        <div>
+            <label>Пояснение (для ИИ)</label>
+            <textarea id="node-desc" placeholder="Детали, контекст..."></textarea>
+        </div>
+        <button class="btn-delete" id="delete-node-button" type="button">
+            <i class="ph ph-trash"></i> Удалить (Backspace)
+        </button>
     </div>
-  </section>
-</div>
 
-<div class="modal" id="help-modal" role="dialog" aria-modal="true" aria-labelledby="help-heading">
-  <section class="modal-card">
-    <header class="modal-head"><div><h2 id="help-heading">Управление</h2><p>Короткая памятка по редактору</p></div><button class="icon-btn" data-close="help-modal"><i class="ph ph-x"></i></button></header>
-    <div class="modal-body" style="display:grid;gap:12px;font-size:11px;color:#b1bdc8;line-height:1.6">
-      <div><b>Левая кнопка мыши</b><br>Выбрать ноду и открыть редактор. Потяни выход одной ноды к входу другой, чтобы соединить их.</div>
-      <div><b>Правая кнопка мыши</b><br>Перемещает ноду. На пустом поле — двигает весь холст.</div>
-      <div><b>Колесо мыши</b><br>Приближает и отдаляет граф относительно курсора. Ctrl не нужен.</div>
-      <div><b>Нажатие на колёсико</b><br>Создаёт ноду в точке курсора.</div>
-      <div><b>Backspace / Delete</b><br>Удаляет выбранную ноду, если фокус не находится в поле ввода.</div>
-      <div><b>N / V / F</b><br>Добавить ноду / переменную / уместить граф в рабочее поле.</div>
+    <!-- Проекты -->
+    <div id="projects-modal" class="modal">
+        <div class="modal-content">
+            <h3>Проекты</h3>
+            <div class="project-list" id="projects-list"></div>
+            <button class="primary" id="new-project-button"><i class="ph ph-plus"></i> Новый проект</button>
+            <button style="margin-top: 10px;" data-close="projects-modal">Закрыть</button>
+        </div>
     </div>
-    <footer class="modal-foot"><span class="help-tip">Изменения сохраняются автоматически.</span><button class="btn primary" data-close="help-modal">Понятно</button></footer>
-  </section>
-</div>
-<div class="toast" id="toast"></div>
 
-<script>
-(() => {
-  'use strict';
+    <!-- Экспорт для ИИ -->
+    <div id="export-modal" class="modal">
+        <div class="modal-content">
+            <h3>Структура для ИИ (Markdown)</h3>
+            <p style="font-size: 12px; color: var(--text-muted);">Скопируй текст и отправь нейросети.</p>
+            <textarea id="ai-export-text" readonly></textarea>
+            <div style="margin-top: 10px; display: flex; gap: 10px; justify-content: flex-end;">
+                <button id="copy-ai-button" class="primary"><i class="ph ph-copy"></i> Скопировать</button>
+                <button data-close="export-modal">Закрыть</button>
+            </div>
+        </div>
+    </div>
 
-  const STORAGE_KEY = 'grafa_projects_v1';
-  const LEGACY_KEY = 'ai_node_builder_projects_v4';
-  const canvas = document.getElementById('drawflow');
-  const editor = new Drawflow(canvas);
-  editor.reroute = false;
-  editor.curvature = 0.52;
-  editor.zoom_max = 2.5;
-  editor.zoom_min = 0.15;
-  editor.zoom_value = 0.1;
-  editor.start();
+    <!-- Просмотр структуры -->
+    <div id="simulation-modal" class="modal">
+        <div class="modal-content simulation-modal">
+            <div class="simulation-head"><h3>Просмотр структуры</h3><button data-close="simulation-modal" title="Закрыть"><i class="ph ph-x"></i></button></div>
+            <div class="simulation-body">
+                <div class="simulation-canvas"><svg id="simulation-svg" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Граф проекта"></svg></div>
+                <aside class="sim-side">
+                    <label>Текущий шаг</label>
+                    <div id="sim-counter" style="font-size:11px;color:var(--text-muted)">0 / 0</div>
+                    <div class="sim-progress"><div id="sim-progress-fill"></div></div>
+                    <div id="sim-step-title" class="sim-step-title">Выбери шаг для просмотра</div>
+                    <div id="sim-step-desc" class="sim-step-desc"></div>
+                    <div id="sim-tags" class="sim-tags"></div>
+                    <div class="sim-controls">
+                        <button id="sim-prev" title="Предыдущий шаг"><i class="ph ph-caret-left"></i></button>
+                        <button id="sim-play" class="primary"><i class="ph ph-play"></i> Старт</button>
+                        <button id="sim-next" title="Следующий шаг"><i class="ph ph-caret-right"></i></button>
+                        <button id="sim-reset" title="Сброс"><i class="ph ph-arrow-counter-clockwise"></i></button>
+                    </div>
+                    <p style="font-size:10px;color:var(--text-muted);line-height:1.5">Это визуальный просмотр порядка узлов и связей. Он не исполняет код и не меняет проект.</p>
+                </aside>
+            </div>
+        </div>
+    </div>
 
-  let projects = [];
-  let currentProjectId = null;
-  let selectedNodeId = null;
-  let saveTimer = null;
-  let inspectorFrame = 0;
-  let toastTimer = null;
-  let suggestion = '';
-  let isPanning = false;
-  let isDraggingNode = false;
-  let dragNodeId = null;
-  let dragStartX = 0, dragStartY = 0, pointerStartX = 0, pointerStartY = 0;
-  let panStartX = 0, panStartY = 0, cameraStartX = 0, cameraStartY = 0;
-  let camera = { x: 0, y: 0, zoom: 1 };
-  let simOrder = [];
-  let simIndex = -1;
-  let simTimer = null;
-  let simLayout = null;
+    <div class="statusbar"><span class="status-dot" id="status-dot"></span><span id="save-status">Сохранено</span><span class="spacer"></span><span id="node-count">0 нод</span><span id="connection-count">0 связей</span><span class="status-hint">ЛКМ — выбрать / соединить · ПКМ — переместить · колесо — масштаб · колёсико — создать</span></div>
 
-  const $ = (id) => document.getElementById(id);
-  const escapeHtml = (value) => String(value ?? '').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
-  const currentData = () => editor.export().drawflow.Home.data;
-  const getNode = (nodeId) => editor.getNodeFromId(String(nodeId));
-  const setText = (element, value) => { if (element) element.textContent = value; };
+    <script>
+    (() => {
+        'use strict';
 
-  function showToast(message) {
-    const toast = $('toast');
-    toast.textContent = message;
-    toast.classList.add('show');
-    clearTimeout(toastTimer);
-    toastTimer = setTimeout(() => toast.classList.remove('show'), 1900);
-  }
+        const STORAGE_KEY = 'grafa_projects_v1';
+        const FALLBACK_KEYS = ['ai_node_builder_projects_v4'];
+        const canvas = document.getElementById('drawflow');
+        const editor = new Drawflow(canvas);
+        editor.reroute = false;
+        editor.curvature = 0.52;
+        editor.zoom_max = 2.5;
+        editor.zoom_min = 0.12;
+        editor.zoom_value = 0.1;
+        editor.start();
 
-  function setSaveState(state) {
-    const labels = { saving: 'Сохранение…', saved: 'Сохранено', error: 'Не удалось сохранить' };
-    setText($('save-status'), labels[state] || labels.saved);
-    $('save-dot').style.background = state === 'error' ? '#d98d8d' : state === 'saving' ? '#c5b99e' : '#86aa94';
-  }
+        const $ = (id) => document.getElementById(id);
+        const emptyGraph = () => ({ drawflow: { Home: { data: {} } } });
+        let projects = [];
+        let currentProjectId = null;
+        let selectedNodeId = null;
+        let saveTimer = null;
+        let cameraSaveTimer = null;
+        let pendingEdits = 0;
+        let dirty = false;
+        let suspendSave = false;
+        let inspectorFrame = 0;
+        let toastTimer = null;
+        let autocompleteWord = '';
+        let inputPrevious = { text: '', vars: '', desc: '' };
 
-  function normalizeDrawflow(value) {
-    if (!value || typeof value !== 'object') return { drawflow: { Home: { data: {} } } };
-    if (value.drawflow && value.drawflow.Home && value.drawflow.Home.data) return value;
-    if (value.Home && value.Home.data) return { drawflow: value };
-    return { drawflow: { Home: { data: {} } } };
-  }
+        let isPanning = false;
+        let isDraggingNode = false;
+        let dragNodeId = null;
+        let dragOffsetX = 0, dragOffsetY = 0;
+        let rightPointerMoved = false;
+        let panStartX = 0, panStartY = 0, cameraStartX = 0, cameraStartY = 0;
 
-  function persistProjects() {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify({ projects, currentProjectId }));
-      setSaveState('saved');
-      updateCounts();
-    } catch (error) {
-      console.error('Grafa save error:', error);
-      setSaveState('error');
-      showToast('Не хватило места в хранилище браузера');
-    }
-  }
+        let simulationOrder = [];
+        let simulationEdges = [];
+        let simulationData = {};
+        let simulationIndex = -1;
+        let simulationTimer = null;
 
-  function captureCurrentProject() {
-    if (!currentProjectId) return;
-    const project = projects.find(item => item.id === currentProjectId);
-    if (!project) return;
-    project.data = editor.export();
-    project.camera = { ...camera };
-    project.updated = Date.now();
-    if (project.autoName) {
-      const firstNamedNode = Object.values(currentData()).find(node => String(node.data?.text || '').trim());
-      if (firstNamedNode) {
-        project.name = String(firstNamedNode.data.text).trim().slice(0, 42);
-        $('project-title').value = project.name;
-      }
-    }
-  }
+        function showToast(message) {
+            let toast = $('toast');
+            if (!toast) {
+                toast = document.createElement('div');
+                toast.id = 'toast';
+                toast.style.cssText = 'position:fixed;z-index:3000;left:50%;bottom:58px;transform:translateX(-50%);padding:9px 13px;border:1px solid #46515e;border-radius:7px;background:#222b35;color:#edf2f7;font-size:12px;box-shadow:0 8px 24px rgba(0,0,0,.35);';
+                document.body.appendChild(toast);
+            }
+            toast.textContent = message;
+            toast.style.display = 'block';
+            clearTimeout(toastTimer);
+            toastTimer = setTimeout(() => { toast.style.display = 'none'; }, 1800);
+        }
 
-  function queueSave(immediate = false) {
-    if (!currentProjectId) return;
-    setSaveState('saving');
-    clearTimeout(saveTimer);
-    if (immediate) {
-      captureCurrentProject();
-      persistProjects();
-    } else {
-      saveTimer = setTimeout(() => {
-        captureCurrentProject();
-        persistProjects();
-      }, 180);
-    }
-  }
+        function setSaveState(state) {
+            const label = $('save-status');
+            const dot = $('status-dot');
+            if (label) label.textContent = state === 'dirty' ? 'Есть изменения' : state === 'saving' ? 'Сохранение…' : state === 'error' ? 'Ошибка сохранения' : 'Сохранено';
+            if (dot) dot.style.background = state === 'error' ? '#d98d8d' : state === 'dirty' || state === 'saving' ? '#c5b99e' : '#8ea99a';
+        }
 
-  function createProject(silent = false) {
-    const project = {
-      id: 'g_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 7),
-      name: 'Без названия', autoName: true,
-      data: { drawflow: { Home: { data: {} } } }, camera: { x: 0, y: 0, zoom: 1 }, updated: Date.now()
-    };
-    projects.unshift(project);
-    currentProjectId = project.id;
-    editor.clear();
-    camera = { x: 0, y: 0, zoom: 1 };
-    applyCamera();
-    closeInspector();
-    $('project-title').value = '';
-    persistProjects();
-    renderProjects();
-    if (!silent) {
-      closeModal('projects-modal');
-      showToast('Создан новый проект');
-    }
-  }
+        function normalizeGraph(value) {
+            if (value?.drawflow?.Home?.data) return value;
+            if (value?.Home?.data) return { drawflow: value };
+            return emptyGraph();
+        }
 
-  function loadProject(projectId) {
-    const project = projects.find(item => item.id === projectId);
-    if (!project) return;
-    currentProjectId = project.id;
-    editor.clear();
-    try { editor.import(normalizeDrawflow(project.data)); }
-    catch (error) { console.error('Grafa import error:', error); showToast('Не удалось открыть проект'); }
-    camera = { x: Number(project.camera?.x) || 0, y: Number(project.camera?.y) || 0, zoom: Math.min(2.5, Math.max(.15, Number(project.camera?.zoom) || 1)) };
-    applyCamera();
-    Object.keys(currentData()).forEach(renderNode);
-    $('project-title').value = project.name === 'Без названия' ? '' : project.name;
-    closeInspector();
-    renderProjects();
-    closeModal('projects-modal');
-    updateCounts();
-    queueSave(true);
-  }
+        function graphData() { return editor.export().drawflow.Home.data; }
+        function getNode(nodeId) { return editor.getNodeFromId(String(nodeId)); }
 
-  function deleteProject(projectId) {
-    const project = projects.find(item => item.id === projectId);
-    if (!project) return;
-    if (!window.confirm(`Удалить проект «${project.name}»?`)) return;
-    projects = projects.filter(item => item.id !== projectId);
-    if (currentProjectId === projectId) {
-      if (projects.length) loadProject(projects[0].id);
-      else createProject(true);
-    } else {
-      persistProjects(); renderProjects();
-    }
-  }
+        function applyCanvasTransform() {
+            editor.precanvas.style.transform = `translate(${editor.canvas_x}px, ${editor.canvas_y}px) scale(${editor.zoom})`;
+            scheduleInspectorUpdate();
+            updateCounts();
+        }
 
-  function renameProject(value) {
-    const project = projects.find(item => item.id === currentProjectId);
-    if (!project) return;
-    const name = String(value || '').trim();
-    if (!name) {
-      project.autoName = true;
-      const first = Object.values(currentData()).find(node => String(node.data?.text || '').trim());
-      project.name = first ? String(first.data.text).trim().slice(0, 42) : 'Без названия';
-      $('project-title').value = project.name === 'Без названия' ? '' : project.name;
-    } else {
-      project.name = name.slice(0, 60);
-      project.autoName = false;
-    }
-    queueSave(true);
-  }
+        function canvasPoint(clientX, clientY) {
+            const rect = canvas.getBoundingClientRect();
+            return {
+                x: (clientX - rect.left - editor.canvas_x) / editor.zoom,
+                y: (clientY - rect.top - editor.canvas_y) / editor.zoom
+            };
+        }
 
-  function renderProjects() {
-    const list = $('projects-list');
-    list.replaceChildren();
-    if (!projects.length) {
-      const empty = document.createElement('div'); empty.className = 'empty-state'; empty.textContent = 'Пока нет проектов. Создай первый граф.'; list.appendChild(empty); return;
-    }
-    [...projects].sort((a, b) => (b.updated || 0) - (a.updated || 0)).forEach(project => {
-      const item = document.createElement('div'); item.className = 'project-item' + (project.id === currentProjectId ? ' active' : '');
-      item.addEventListener('click', () => loadProject(project.id));
-      const info = document.createElement('div');
-      const title = document.createElement('div'); title.className = 'project-item-title'; title.textContent = project.name || 'Без названия';
-      const meta = document.createElement('div'); meta.className = 'project-item-meta';
-      const nodeCount = Object.keys(normalizeDrawflow(project.data).drawflow.Home.data || {}).length;
-      const date = project.updated ? new Date(project.updated).toLocaleString('ru-RU', { day:'numeric', month:'short', hour:'2-digit', minute:'2-digit' }) : 'Ещё не изменялся';
-      meta.textContent = `${nodeCount} нод · ${date}`;
-      info.append(title, meta);
-      const actions = document.createElement('div'); actions.className = 'project-item-actions';
-      const del = document.createElement('button'); del.className = 'small-icon'; del.title = 'Удалить проект'; del.innerHTML = '<i class="ph ph-trash"></i>';
-      del.addEventListener('click', event => { event.stopPropagation(); deleteProject(project.id); });
-      actions.append(del); item.append(info, actions); list.appendChild(item);
-    });
-  }
+        function updateCounts() {
+            const data = graphData();
+            let connections = 0;
+            Object.values(data).forEach(node => Object.values(node.outputs || {}).forEach(output => { connections += (output.connections || []).length; }));
+            $('node-count').textContent = `${Object.keys(data).length} нод`;
+            $('connection-count').textContent = `${connections} связей`;
+        }
 
-  function openModal(id) { $(id).classList.add('open'); }
-  function closeModal(id) { $(id).classList.remove('open'); if (id === 'simulation-modal') stopSimulation(); }
-  document.querySelectorAll('[data-close]').forEach(button => button.addEventListener('click', () => closeModal(button.dataset.close)));
-  document.querySelectorAll('.modal').forEach(modal => modal.addEventListener('mousedown', event => { if (event.target === modal) closeModal(modal.id); }));
+        function safeFilename(name) {
+            return String(name || 'grafa-project').trim().replace(/[\\/:*?"<>|]+/g, '-').replace(/\s+/g, '-').slice(0, 56) || 'grafa-project';
+        }
 
-  function nodeTemplate(kind, nodeId) {
-    const variable = kind === 'variable';
-    return `<div class="node-card">
-      <div class="node-meta"><span class="node-kind"><i class="ph ${variable ? 'ph-brackets-curly' : 'ph-circle-nodes'}"></i>${variable ? 'ПЕРЕМЕННАЯ' : 'НОДА'}</span><span class="node-number">#${String(nodeId).padStart(2,'0')}</span></div>
-      <div class="node-main-text placeholder"></div><div class="node-vars-display"></div>
-    </div>`;
-  }
+        function projectById(id = currentProjectId) { return projects.find(project => project.id === id); }
 
-  function createNodeAt(x, y, kind = 'node', data = null) {
-    const id = editor.addNode(kind, 1, 1, Math.round(x), Math.round(y), kind === 'variable' ? 'variable-node' : 'idea-node',
-      data || { text: '', vars: '', desc: '', kind }, nodeTemplate(kind, '·'), false);
-    const node = getNode(id);
-    if (node) node.data.kind = kind;
-    renderNode(id);
-    queueSave(true);
-    editor.selectNode(String(id));
-    return id;
-  }
+        function autoProjectName(project) {
+            if (!project?.autoName) return;
+            const first = Object.values(graphData()).find(node => String(node.data?.text || '').trim());
+            if (first) {
+                project.name = String(first.data.text).trim().slice(0, 42);
+                if (project.id === currentProjectId && document.activeElement !== $('current-project-name')) $('current-project-name').value = project.name;
+            }
+        }
 
-  function canvasPoint(clientX, clientY) {
-    const rect = canvas.getBoundingClientRect();
-    return { x: (clientX - rect.left - camera.x) / camera.zoom, y: (clientY - rect.top - camera.y) / camera.zoom };
-  }
+        function captureCurrentProject() {
+            const project = projectById();
+            if (!project) return;
+            project.data = editor.export();
+            project.camera = { x: editor.canvas_x, y: editor.canvas_y, zoom: editor.zoom };
+            project.updated = Date.now();
+            autoProjectName(project);
+        }
 
-  function addAtCenter(kind = 'node') {
-    const point = canvasPoint(window.innerWidth / 2, Math.max(120, window.innerHeight / 2));
-    return createNodeAt(point.x - 112, point.y - 42, kind);
-  }
+        function persistProjects() {
+            try {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify({ projects, currentProjectId }));
+                setSaveState('saved');
+                updateCounts();
+                if ($('projects-modal').style.display === 'flex') renderProjectsList();
+                return true;
+            } catch (error) {
+                console.error('Grafa save error:', error);
+                setSaveState('error');
+                showToast('Не удалось сохранить проект в браузере');
+                return false;
+            }
+        }
 
-  function renderNode(nodeId) {
-    const node = getNode(nodeId);
-    const element = document.getElementById(`node-${nodeId}`);
-    if (!node || !element) return;
-    const isVariable = (node.data.kind || node.name) === 'variable' || element.classList.contains('variable-node');
-    element.classList.toggle('variable-node', isVariable);
-    const card = element.querySelector('.node-card');
-    if (!card) return;
-    const kind = card.querySelector('.node-kind');
-    if (kind) kind.innerHTML = `<i class="ph ${isVariable ? 'ph-brackets-curly' : 'ph-circle-nodes'}"></i>${isVariable ? 'ПЕРЕМЕННАЯ' : 'НОДА'}`;
-    const number = card.querySelector('.node-number'); if (number) number.textContent = `#${String(nodeId).padStart(2,'0')}`;
-    const text = card.querySelector('.node-main-text');
-    const value = String(node.data.text || '').trim();
-    if (text) { text.textContent = value || (isVariable ? 'Имя переменной' : 'Пустая нода'); text.classList.toggle('placeholder', !value); }
-    const vars = card.querySelector('.node-vars-display');
-    if (vars) { vars.textContent = node.data.vars || ''; vars.classList.toggle('has-vars', !!String(node.data.vars || '').trim()); }
-  }
+        // One write after two edits/characters, or a short idle fallback for a single edit.
+        function flushSave() {
+            clearTimeout(saveTimer);
+            if (!dirty || !currentProjectId) return;
+            setSaveState('saving');
+            captureCurrentProject();
+            if (persistProjects()) {
+                dirty = false;
+                pendingEdits = 0;
+            }
+        }
 
-  function updateCounts() {
-    const data = currentData();
-    const count = Object.keys(data).length;
-    let edges = 0;
-    Object.values(data).forEach(node => Object.values(node.outputs || {}).forEach(output => { edges += (output.connections || []).length; }));
-    $('node-count').textContent = `${count} нод`;
-    $('connection-count').textContent = `${edges} связей`;
-    $('zoom-label').textContent = `${Math.round(camera.zoom * 100)}%`;
-  }
+        function markDirty(units = 1) {
+            if (suspendSave || !currentProjectId) return;
+            dirty = true;
+            pendingEdits += Math.max(1, Number(units) || 1);
+            setSaveState('dirty');
+            clearTimeout(saveTimer);
+            if (pendingEdits >= 2) flushSave();
+            else saveTimer = setTimeout(flushSave, 950);
+        }
 
-  function applyCamera() {
-    const container = editor.drawflow?.drawflowContainer;
-    if (container) container.style.transform = `translate(${camera.x}px, ${camera.y}px) scale(${camera.zoom})`;
-    // Keep Drawflow's internal camera values in sync with the CSS transform.
-    editor.canvas_x = camera.x; editor.canvas_y = camera.y; editor.zoom = camera.zoom;
-    updateCounts();
-    scheduleInspectorPosition();
-  }
+        function markCameraDirty() {
+            clearTimeout(cameraSaveTimer);
+            cameraSaveTimer = setTimeout(() => markDirty(1), 650);
+        }
 
-  function setZoom(nextZoom, clientX = window.innerWidth / 2, clientY = window.innerHeight / 2) {
-    const rect = canvas.getBoundingClientRect();
-    const px = clientX - rect.left, py = clientY - rect.top;
-    const worldX = (px - camera.x) / camera.zoom;
-    const worldY = (py - camera.y) / camera.zoom;
-    camera.zoom = Math.min(editor.zoom_max, Math.max(editor.zoom_min, nextZoom));
-    camera.x = px - worldX * camera.zoom;
-    camera.y = py - worldY * camera.zoom;
-    applyCamera(); queueSave();
-  }
+        function withSaveSuspended(action) {
+            suspendSave = true;
+            try { action(); } finally { suspendSave = false; }
+        }
 
-  function fitGraph() {
-    const nodes = Object.values(currentData());
-    if (!nodes.length) { camera = { x: 0, y: 0, zoom: 1 }; applyCamera(); return; }
-    const minX = Math.min(...nodes.map(n => n.pos_x)), minY = Math.min(...nodes.map(n => n.pos_y));
-    const maxX = Math.max(...nodes.map(n => n.pos_x + 230)), maxY = Math.max(...nodes.map(n => n.pos_y + 105));
-    const availableW = Math.max(260, canvas.clientWidth - 170), availableH = Math.max(240, canvas.clientHeight - 180);
-    const zoom = Math.min(1.35, availableW / (maxX - minX + 80), availableH / (maxY - minY + 80));
-    camera.zoom = Math.max(.25, Math.min(1.35, zoom));
-    camera.x = (canvas.clientWidth - (maxX - minX) * camera.zoom) / 2 - minX * camera.zoom;
-    camera.y = (canvas.clientHeight - (maxY - minY) * camera.zoom) / 2 - minY * camera.zoom;
-    applyCamera(); queueSave();
-  }
+        function closeInspector() {
+            selectedNodeId = null;
+            $('inspector').classList.remove('open', 'dragging');
+            hideAutocomplete();
+        }
 
-  function openInspector(nodeId) {
-    const node = getNode(nodeId);
-    if (!node) return;
-    selectedNodeId = String(nodeId);
-    const variable = (node.data.kind || node.name) === 'variable' || document.getElementById(`node-${nodeId}`)?.classList.contains('variable-node');
-    $('inspector-heading').textContent = variable ? 'Редактирование переменной' : 'Редактирование ноды';
-    $('inspector-icon').className = `ph ${variable ? 'ph-brackets-curly' : 'ph-cursor-text'}`;
-    $('node-text-label').textContent = variable ? 'Имя переменной' : 'Содержание';
-    $('node-text').placeholder = variable ? 'Например: API_KEY' : 'Начни записывать идею...';
-    $('node-text').value = node.data.text || '';
-    $('node-vars').value = node.data.vars || '';
-    $('node-desc').value = node.data.desc || '';
-    hideAutocomplete();
-    $('inspector').classList.add('open');
-    scheduleInspectorPosition();
-  }
+        function openInspector(nodeId) {
+            const node = getNode(nodeId);
+            if (!node) return;
+            selectedNodeId = String(nodeId);
+            const isVariable = node.data.kind === 'variable' || node.name === 'variable';
+            $('node-text-label').textContent = isVariable ? 'Имя переменной' : 'Текст ноды';
+            $('node-text').placeholder = isVariable ? 'Например: API_KEY' : 'Введите мысль...';
+            $('node-text').value = node.data.text || '';
+            $('node-vars').value = node.data.vars || '';
+            $('node-desc').value = node.data.desc || '';
+            inputPrevious = { text: $('node-text').value, vars: $('node-vars').value, desc: $('node-desc').value };
+            hideAutocomplete();
+            $('inspector').classList.add('open');
+            scheduleInspectorUpdate();
+        }
 
-  function closeInspector() {
-    selectedNodeId = null;
-    $('inspector').classList.remove('open', 'dragging');
-    hideAutocomplete();
-  }
+        function selectNodeManually(nodeId) {
+            const element = document.getElementById(`node-${nodeId}`);
+            if (!element) return;
+            if (editor.node_selected && editor.node_selected !== element) {
+                editor.node_selected.classList.remove('selected');
+                editor.dispatch('nodeUnselected', true);
+            }
+            if (editor.connection_selected) {
+                editor.connection_selected.classList.remove('selected');
+                editor.connection_selected = null;
+            }
+            editor.node_selected = element;
+            editor.ele_selected = element;
+            editor.drag = false;
+            element.classList.add('selected');
+            editor.dispatch('nodeSelected', String(nodeId));
+        }
 
-  function scheduleInspectorPosition() {
-    if (inspectorFrame) return;
-    inspectorFrame = requestAnimationFrame(() => { inspectorFrame = 0; updateInspectorPosition(); });
-  }
+        function deselectCanvas() {
+            if (editor.node_selected) {
+                editor.node_selected.classList.remove('selected');
+                editor.node_selected = null;
+                editor.dispatch('nodeUnselected', true);
+            } else {
+                closeInspector();
+            }
+            if (editor.connection_selected) {
+                editor.connection_selected.classList.remove('selected');
+                editor.connection_selected = null;
+            }
+            editor.ele_selected = null;
+        }
 
-  function updateInspectorPosition() {
-    if (!selectedNodeId || !$('inspector').classList.contains('open')) return;
-    const element = document.getElementById(`node-${selectedNodeId}`);
-    if (!element) { closeInspector(); return; }
-    const rect = element.getBoundingClientRect();
-    const panel = $('inspector');
-    const width = panel.offsetWidth || 326;
-    const height = panel.offsetHeight || 285;
-    let left = rect.left + rect.width / 2 - width / 2;
-    left = Math.max(12, Math.min(window.innerWidth - width - 12, left));
-    let top = rect.bottom + 10;
-    if (top + height > window.innerHeight - 48) top = rect.top - height - 10;
-    top = Math.max(12, Math.min(window.innerHeight - height - 12, top));
-    panel.style.left = `${left}px`; panel.style.top = `${top}px`;
-  }
+        function scheduleInspectorUpdate() {
+            if (inspectorFrame) return;
+            inspectorFrame = requestAnimationFrame(() => {
+                inspectorFrame = 0;
+                updateInspectorPosition();
+            });
+        }
 
-  function deleteSelectedNode() {
-    if (!selectedNodeId) return;
-    const id = selectedNodeId;
-    editor.removeNodeId(`node-${id}`);
-    closeInspector(); queueSave(true); updateCounts();
-  }
+        function updateInspectorPosition() {
+            if (!selectedNodeId || !$('inspector').classList.contains('open')) return;
+            const nodeElement = document.getElementById(`node-${selectedNodeId}`);
+            if (!nodeElement) { closeInspector(); return; }
+            const rect = nodeElement.getBoundingClientRect();
+            const panel = $('inspector');
+            const width = panel.offsetWidth || 320;
+            const height = panel.offsetHeight || 230;
+            let left = rect.left + rect.width / 2 - width / 2;
+            left = Math.max(12, Math.min(window.innerWidth - width - 12, left));
+            let top = rect.bottom + 10;
+            if (top + height > window.innerHeight - 12) top = rect.top - height - 10;
+            top = Math.max(12, Math.min(window.innerHeight - height - 12, top));
+            panel.style.left = `${left}px`;
+            panel.style.top = `${top}px`;
+        }
 
-  function updateNodeField(field, value) {
-    if (!selectedNodeId) return;
-    const node = getNode(selectedNodeId);
-    if (!node) return;
-    node.data[field] = value;
-    if (field === 'text' || field === 'vars') renderNode(selectedNodeId);
-    queueSave(); scheduleInspectorPosition(); updateCounts();
-  }
+        function nodeTemplate(kind) {
+            const variable = kind === 'variable';
+            return `<div class="drawflow-content"><div class="node-kind">${variable ? 'ПЕРЕМЕННАЯ' : 'НОДА'}</div><div class="node-main-text"></div><div class="node-vars-display"></div></div>`;
+        }
 
-  function suggestWord(inputText) {
-    const trailing = String(inputText).match(/[\p{L}\p{N}_-]+$/u)?.[0] || '';
-    if (trailing.length < 2) { hideAutocomplete(); return; }
-    const words = new Set();
-    Object.entries(currentData()).forEach(([id, node]) => {
-      if (String(id) === String(selectedNodeId)) return;
-      String(node.data?.text || '').split(/[^\p{L}\p{N}_-]+/u).forEach(word => { if (word.length > trailing.length) words.add(word); });
-    });
-    const match = [...words].filter(word => word.toLocaleLowerCase().startsWith(trailing.toLocaleLowerCase())).sort((a,b) => a.length - b.length)[0];
-    if (!match) { hideAutocomplete(); return; }
-    suggestion = match;
-    $('autocomplete-text').textContent = match;
-    $('autocomplete').classList.add('active');
-  }
+        function renderNode(nodeId) {
+            const node = getNode(nodeId);
+            const element = document.getElementById(`node-${nodeId}`);
+            if (!node || !element) return;
+            const variable = node.data.kind === 'variable' || node.name === 'variable';
+            element.classList.toggle('variable-node', variable);
+            const kind = element.querySelector('.node-kind');
+            if (kind) kind.textContent = variable ? 'ПЕРЕМЕННАЯ' : 'НОДА';
+            const text = element.querySelector('.node-main-text');
+            if (text) {
+                const value = String(node.data.text || '').trim();
+                text.textContent = value || (variable ? 'Имя переменной' : 'Пустая нода');
+                text.classList.toggle('empty', !value);
+            }
+            const vars = element.querySelector('.node-vars-display');
+            if (vars) {
+                vars.textContent = node.data.vars || '';
+                vars.classList.toggle('has-vars', !!String(node.data.vars || '').trim());
+            }
+        }
 
-  function hideAutocomplete() { suggestion = ''; $('autocomplete').classList.remove('active'); }
-  function applyAutocomplete() {
-    if (!suggestion || !selectedNodeId) return;
-    const input = $('node-text');
-    const value = input.value;
-    const next = value.replace(/[\p{L}\p{N}_-]+$/u, suggestion);
-    input.value = next; updateNodeField('text', next); hideAutocomplete(); input.focus();
-  }
+        function createNodeAt(clientX, clientY, kind = 'node') {
+            const point = canvasPoint(clientX, clientY);
+            const nodeData = { text: '', vars: '', desc: '', kind };
+            const id = editor.addNode(kind, 1, 1, point.x - 90, point.y - 30,
+                kind === 'variable' ? 'variable-node' : 'node', nodeData, nodeTemplate(kind), false);
+            selectNodeManually(id);
+            return id;
+        }
 
-  function exportProjectObject() {
-    captureCurrentProject();
-    return {
-      format: 'grafa-project', version: 1,
-      project: { name: projects.find(p => p.id === currentProjectId)?.name || 'Без названия', exportedAt: new Date().toISOString() },
-      camera: { ...camera },
-      ...editor.export()
-    };
-  }
+        function addAtCenter(kind = 'node') {
+            createNodeAt(canvas.getBoundingClientRect().left + canvas.clientWidth / 2,
+                canvas.getBoundingClientRect().top + canvas.clientHeight / 2, kind);
+        }
 
-  function downloadFile(filename, content, type = 'application/json') {
-    const blob = new Blob([content], { type: `${type};charset=utf-8` });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a'); link.href = url; link.download = filename; link.click();
-    setTimeout(() => URL.revokeObjectURL(url), 1000);
-  }
+        function createNewProject(silent = false) {
+            flushSave();
+            const project = {
+                id: `proj_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+                name: 'Без названия', autoName: true,
+                data: emptyGraph(), camera: { x: 0, y: 0, zoom: 1 }, updated: Date.now()
+            };
+            projects.unshift(project);
+            currentProjectId = project.id;
+            withSaveSuspended(() => editor.clear());
+            editor.canvas_x = 0; editor.canvas_y = 0; editor.zoom = 1;
+            applyCanvasTransform();
+            closeInspector();
+            $('current-project-name').value = '';
+            dirty = false; pendingEdits = 0;
+            persistProjects();
+            renderProjectsList();
+            if (!silent) {
+                $('projects-modal').style.display = 'none';
+                showToast('Создан пустой проект');
+            }
+        }
 
-  function safeFilename(name) { return String(name || 'grafa-project').trim().replace(/[\\/:*?"<>|]+/g, '-').replace(/\s+/g, '-').slice(0, 60) || 'grafa-project'; }
+        function loadProject(projectId) {
+            flushSave();
+            const project = projectById(projectId);
+            if (!project) return;
+            currentProjectId = projectId;
+            withSaveSuspended(() => {
+                editor.clear();
+                const data = normalizeGraph(project.data);
+                editor.import(data);
+            });
+            editor.canvas_x = Number(project.camera?.x) || 0;
+            editor.canvas_y = Number(project.camera?.y) || 0;
+            editor.zoom = Math.min(editor.zoom_max, Math.max(editor.zoom_min, Number(project.camera?.zoom) || 1));
+            applyCanvasTransform();
+            Object.keys(graphData()).forEach(renderNode);
+            $('current-project-name').value = project.name && project.name !== 'Без названия' ? project.name : '';
+            closeInspector();
+            dirty = false; pendingEdits = 0; clearTimeout(saveTimer);
+            setSaveState('saved');
+            renderProjectsList();
+            $('projects-modal').style.display = 'none';
+        }
 
-  function buildAIExport() {
-    const data = currentData();
-    const entries = Object.entries(data);
-    const name = projects.find(p => p.id === currentProjectId)?.name || 'Без названия';
-    let result = `# ${name}\n\n`;
-    result += `Формат: визуальная структура проекта Grafa\nНод: ${entries.length}\n\n`;
-    const idToText = {};
-    entries.forEach(([id, node]) => { idToText[id] = String(node.data?.text || '').trim() || `Нода ${id}`; });
-    entries.forEach(([id, node], index) => {
-      const kind = (node.data?.kind || node.name) === 'variable' ? 'Переменная' : 'Нода';
-      result += `## ${index + 1}. ${kind}: ${idToText[id]}\n`;
-      if (node.data?.vars) result += `- Переменные и теги: ${node.data.vars}\n`;
-      if (node.data?.desc) result += `- Контекст: ${node.data.desc}\n`;
-      const outputs = Object.values(node.outputs || {}).flatMap(output => output.connections || []);
-      if (outputs.length) {
-        result += '- Связи ведут к:\n';
-        outputs.forEach(connection => { result += `  - ${idToText[connection.node] || `Нода ${connection.node}`} (ID ${connection.node})\n`; });
-      } else result += '- Исходящие связи: нет\n';
-      result += `- Позиция на холсте: x=${Math.round(node.pos_x)}, y=${Math.round(node.pos_y)}\n\n`;
-    });
-    result += '## Как читать граф\nСвязи показывают направление перехода от исходной ноды к целевой. Переменные — отдельные узлы, которые можно включать в цепочки. Не додумывай отсутствующие требования: используй только явно указанные данные.\n';
-    return result;
-  }
+        function deleteProject(projectId) {
+            const project = projectById(projectId);
+            if (!project || !confirm(`Удалить проект «${project.name}»?`)) return;
+            flushSave();
+            projects = projects.filter(item => item.id !== projectId);
+            if (currentProjectId === projectId) {
+                if (projects.length) loadProject(projects[0].id);
+                else createNewProject(true);
+            } else {
+                persistProjects(); renderProjectsList();
+            }
+        }
 
-  function copyText(text) {
-    if (navigator.clipboard?.writeText) return navigator.clipboard.writeText(text).then(() => showToast('Скопировано')).catch(() => fallbackCopy(text));
-    fallbackCopy(text);
-  }
-  function fallbackCopy(text) {
-    const field = document.createElement('textarea'); field.value = text; field.style.position = 'fixed'; field.style.opacity = '0'; document.body.appendChild(field); field.select();
-    try { document.execCommand('copy'); showToast('Скопировано'); } catch { showToast('Не удалось скопировать'); }
-    field.remove();
-  }
+        function renderProjectsList() {
+            const list = $('projects-list');
+            list.replaceChildren();
+            if (!projects.length) {
+                const empty = document.createElement('div');
+                empty.className = 'empty-hint'; empty.textContent = 'Пока нет проектов.'; list.appendChild(empty); return;
+            }
+            [...projects].sort((a, b) => (b.updated || 0) - (a.updated || 0)).forEach(project => {
+                const item = document.createElement('div');
+                item.className = `project-item${project.id === currentProjectId ? ' active' : ''}`;
+                const info = document.createElement('div');
+                const title = document.createElement('div'); title.style.cssText = 'font-weight:600;color:#fff'; title.textContent = project.name || 'Без названия';
+                const date = new Date(project.updated || Date.now()).toLocaleString('ru-RU', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+                const meta = document.createElement('div'); meta.className = 'project-date';
+                const graph = normalizeGraph(project.data).drawflow.Home.data || {};
+                meta.textContent = `${Object.keys(graph).length} нод · ${date}`;
+                info.append(title, meta);
+                const actions = document.createElement('div'); actions.style.cssText = 'display:flex;gap:6px;align-items:center';
+                const open = document.createElement('button'); open.textContent = project.id === currentProjectId ? 'Открыт' : 'Открыть'; open.addEventListener('click', event => { event.stopPropagation(); loadProject(project.id); });
+                const remove = document.createElement('button'); remove.textContent = '×'; remove.title = 'Удалить проект'; remove.style.cssText = 'padding:4px 9px;color:var(--danger)'; remove.addEventListener('click', event => { event.stopPropagation(); deleteProject(project.id); });
+                actions.append(open, remove); item.append(info, actions);
+                item.addEventListener('dblclick', () => loadProject(project.id));
+                list.appendChild(item);
+            });
+        }
 
-  function importFile(file) {
-    const reader = new FileReader();
-    reader.onload = () => {
-      try {
-        const parsed = JSON.parse(String(reader.result));
-        const drawflow = normalizeDrawflow(parsed);
-        if (!projects.length) createProject(true);
-        editor.clear(); editor.import(drawflow);
-        Object.keys(currentData()).forEach(id => {
-          const node = getNode(id);
-          if (!node.data.kind) node.data.kind = node.name === 'variable' ? 'variable' : 'node';
-          renderNode(id);
+        function openProjectsModal() { flushSave(); renderProjectsList(); $('projects-modal').style.display = 'flex'; }
+
+        function renameProject(value) {
+            const project = projectById();
+            if (!project) return;
+            const name = String(value || '').trim();
+            if (!name) {
+                project.autoName = true;
+                project.name = 'Без названия';
+                autoProjectName(project);
+                $('current-project-name').value = project.name === 'Без названия' ? '' : project.name;
+            } else {
+                project.autoName = false;
+                project.name = name.slice(0, 60);
+            }
+            markDirty(1);
+        }
+
+        function deleteSelectedNode() {
+            if (!selectedNodeId) return;
+            const id = selectedNodeId;
+            editor.removeNodeId(`node-${id}`);
+            closeInspector();
+        }
+
+        function updateNodeField(field, value, units = 1) {
+            if (!selectedNodeId) return;
+            const node = getNode(selectedNodeId);
+            if (!node) return;
+            node.data[field] = value;
+            if (field === 'text' || field === 'vars') renderNode(selectedNodeId);
+            markDirty(units);
+            scheduleInspectorUpdate();
+        }
+
+        function suggestAutocomplete(inputText) {
+            const token = String(inputText).match(/[\p{L}\p{N}_-]+$/u)?.[0] || '';
+            if (token.length < 2) { hideAutocomplete(); return; }
+            const words = new Set();
+            Object.entries(graphData()).forEach(([id, node]) => {
+                if (String(id) === String(selectedNodeId)) return;
+                String(node.data?.text || '').split(/[^\p{L}\p{N}_-]+/u).forEach(word => { if (word.length > token.length) words.add(word); });
+            });
+            const match = [...words].filter(word => word.toLocaleLowerCase().startsWith(token.toLocaleLowerCase())).sort((a, b) => a.length - b.length)[0];
+            if (!match) { hideAutocomplete(); return; }
+            autocompleteWord = match;
+            $('autocomplete-text').textContent = match;
+            $('autocomplete').classList.add('active');
+        }
+
+        function hideAutocomplete() { autocompleteWord = ''; $('autocomplete').classList.remove('active'); }
+        function applyAutocomplete() {
+            if (!autocompleteWord || !selectedNodeId) return;
+            const input = $('node-text');
+            const before = input.value;
+            const after = before.replace(/[\p{L}\p{N}_-]+$/u, autocompleteWord);
+            input.value = after;
+            const units = Math.max(1, Math.abs(after.length - before.length));
+            inputPrevious.text = after;
+            updateNodeField('text', after, units);
+            hideAutocomplete(); input.focus();
+        }
+
+        function exportJSON() {
+            flushSave();
+            const project = projectById();
+            const payload = {
+                format: 'grafa-project', version: 1,
+                project: { name: project?.name || 'Без названия' },
+                camera: { x: editor.canvas_x, y: editor.canvas_y, zoom: editor.zoom },
+                ...editor.export()
+            };
+            const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a'); link.href = url; link.download = `${safeFilename(project?.name)}.json`; link.click();
+            setTimeout(() => URL.revokeObjectURL(url), 1000);
+        }
+
+        function importJSON(event) {
+            const file = event.target.files?.[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = () => {
+                try {
+                    const parsed = JSON.parse(String(reader.result));
+                    const project = projectById();
+                    withSaveSuspended(() => {
+                        editor.clear();
+                        editor.import(normalizeGraph(parsed));
+                        Object.keys(graphData()).forEach(id => {
+                            const node = getNode(id);
+                            if (!node.data.kind) node.data.kind = node.name === 'variable' ? 'variable' : 'node';
+                            renderNode(id);
+                        });
+                    });
+                    editor.canvas_x = Number(parsed.camera?.x) || 0;
+                    editor.canvas_y = Number(parsed.camera?.y) || 0;
+                    editor.zoom = Math.min(editor.zoom_max, Math.max(editor.zoom_min, Number(parsed.camera?.zoom) || 1));
+                    applyCanvasTransform();
+                    if (project) {
+                        const name = parsed.project?.name || file.name.replace(/\.json$/i, '');
+                        project.name = name || 'Без названия'; project.autoName = false;
+                        $('current-project-name').value = project.name;
+                    }
+                    markDirty(2); updateCounts(); showToast('Проект импортирован');
+                } catch (error) { console.error(error); showToast('Не удалось прочитать JSON-файл'); }
+                $('file-input').value = '';
+            };
+            reader.readAsText(file);
+        }
+
+        function buildAIExport() {
+            const data = graphData();
+            const project = projectById();
+            const ids = Object.keys(data);
+            const names = {};
+            ids.forEach(id => { names[id] = String(data[id].data?.text || '').trim() || `Нода ${id}`; });
+            let result = `# ${project?.name || 'Без названия'}\n\n`;
+            result += `Нод: ${ids.length}\n\n`;
+            ids.forEach((id, index) => {
+                const node = data[id];
+                const kind = node.data?.kind === 'variable' || node.name === 'variable' ? 'Переменная' : 'Нода';
+                result += `## ${index + 1}. ${kind}: ${names[id]}\n`;
+                if (node.data?.vars) result += `- Переменные и теги: ${node.data.vars}\n`;
+                if (node.data?.desc) result += `- Пояснение: ${node.data.desc}\n`;
+                const outgoing = Object.values(node.outputs || {}).flatMap(output => output.connections || []);
+                if (outgoing.length) {
+                    result += '- Связи ведут к:\n';
+                    outgoing.forEach(connection => { result += `  - ${names[connection.node] || `Нода ${connection.node}`} (ID ${connection.node})\n`; });
+                }
+                result += '\n';
+            });
+            result += '## Правила чтения\nСвязь направлена от выхода исходной ноды ко входу целевой. Узлы типа «Переменная» — отдельные элементы графа. Не добавляй требования, которых нет в этой структуре.\n';
+            return result;
+        }
+
+        function copyAIText() {
+            const textarea = $('ai-export-text');
+            textarea.select();
+            if (navigator.clipboard?.writeText) navigator.clipboard.writeText(textarea.value).then(() => showToast('Скопировано')).catch(() => { document.execCommand('copy'); showToast('Скопировано'); });
+            else { document.execCommand('copy'); showToast('Скопировано'); }
+        }
+
+        // Build a stable left-to-right overview from the actual graph, including cycles and disconnected nodes.
+        function buildSimulation() {
+            const data = graphData();
+            const ids = Object.keys(data);
+            const adjacency = new Map(ids.map(id => [id, Object.values(data[id].outputs || {}).flatMap(output => output.connections || []).map(c => String(c.node)).filter(id2 => !!data[id2])]));
+            const incoming = new Set([...adjacency.values()].flat());
+            const roots = ids.filter(id => !incoming.has(id));
+            const starts = [...roots, ...ids.filter(id => !roots.includes(id))];
+            const levels = new Map();
+            const order = [];
+            starts.forEach(start => {
+                if (levels.has(start)) return;
+                levels.set(start, 0);
+                const queue = [start];
+                while (queue.length) {
+                    const current = queue.shift();
+                    if (!order.includes(current)) order.push(current);
+                    (adjacency.get(current) || []).forEach(next => {
+                        if (!levels.has(next)) { levels.set(next, (levels.get(current) || 0) + 1); queue.push(next); }
+                    });
+                }
+            });
+            // Keep every node in the traversal, including isolated nodes.
+            ids.forEach(id => { if (!order.includes(id)) { order.push(id); levels.set(id, 0); } });
+            const buckets = new Map();
+            ids.forEach(id => { const level = levels.get(id) || 0; if (!buckets.has(level)) buckets.set(level, []); buckets.get(level).push(id); });
+            const positions = {};
+            [...buckets.keys()].sort((a,b) => a-b).forEach(level => buckets.get(level).forEach((id, row) => { positions[id] = { x: 48 + level * 275, y: 42 + row * 122 }; }));
+            const edges = [];
+            ids.forEach(from => (adjacency.get(from) || []).forEach(to => edges.push({ from, to })));
+            const maxLevel = Math.max(0, ...[...buckets.keys()]);
+            const maxRows = Math.max(1, ...[...buckets.values()].map(bucket => bucket.length));
+            return { data, order, positions, edges, width: 48 + (maxLevel + 1) * 275 + 250, height: Math.max(300, 42 + maxRows * 122 + 70) };
+        }
+
+        function renderSimulationGraph() {
+            const layout = buildSimulation();
+            simulationData = layout.data; simulationOrder = layout.order; simulationEdges = layout.edges; simulationIndex = -1;
+            const svg = $('simulation-svg');
+            svg.setAttribute('viewBox', `0 0 ${layout.width} ${layout.height}`);
+            svg.setAttribute('width', layout.width); svg.setAttribute('height', layout.height);
+            if (!simulationOrder.length) {
+                svg.innerHTML = `<text x="30" y="50" fill="#9aa7b4" font-size="14">Добавь несколько нод, чтобы посмотреть граф.</text>`;
+                $('sim-step-title').textContent = 'Пока пусто'; $('sim-step-desc').textContent = 'В проекте ещё нет нод.'; $('sim-tags').textContent = '';
+                $('sim-counter').textContent = '0 / 0'; $('sim-progress-fill').style.width = '0%';
+                return;
+            }
+            const edges = layout.edges.map(edge => {
+                const a = layout.positions[edge.from], b = layout.positions[edge.to];
+                const sx = a.x + 218, sy = a.y + 39, ex = b.x, ey = b.y + 39;
+                const mid = sx + Math.max(34, (ex - sx) * .48);
+                return `<path class="sim-edge" data-from="${edge.from}" data-to="${edge.to}" d="M ${sx} ${sy} C ${mid} ${sy}, ${mid} ${ey}, ${ex} ${ey}"/>`;
+            }).join('');
+            const nodes = simulationOrder.map(id => {
+                const node = layout.data[id], p = layout.positions[id];
+                const variable = node.data?.kind === 'variable' || node.name === 'variable';
+                const title = String(node.data?.text || (variable ? 'Имя переменной' : 'Пустая нода'));
+                const short = title.length > 28 ? title.slice(0, 27) + '…' : title;
+                return `<g class="sim-node${variable ? ' variable' : ''}" data-node="${id}" transform="translate(${p.x},${p.y})"><rect width="218" height="78"/><text class="sim-kind" x="13" y="17">${variable ? 'ПЕРЕМЕННАЯ' : 'НОДА'}</text><text x="13" y="44">${escapeXml(short)}</text><text x="13" y="63" fill="#8895a2" font-size="9">#${id}</text></g>`;
+            }).join('');
+            svg.innerHTML = edges + nodes;
+            renderSimulationStep();
+        }
+
+        function escapeXml(value) { return String(value).replace(/[&<>"']/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&apos;'}[char])); }
+
+        function renderSimulationStep() {
+            const total = simulationOrder.length;
+            const currentId = simulationOrder[simulationIndex];
+            $('sim-counter').textContent = `${simulationIndex < 0 ? 0 : simulationIndex + 1} / ${total}`;
+            $('sim-progress-fill').style.width = `${total ? Math.max(0, simulationIndex + 1) / total * 100 : 0}%`;
+            $('simulation-svg').querySelectorAll('.sim-node').forEach(element => {
+                const index = simulationOrder.indexOf(element.dataset.node);
+                element.classList.toggle('active', element.dataset.node === currentId);
+                element.classList.toggle('done', index >= 0 && index < simulationIndex);
+            });
+            $('simulation-svg').querySelectorAll('.sim-edge').forEach(element => {
+                const from = simulationOrder.indexOf(element.dataset.from), to = simulationOrder.indexOf(element.dataset.to);
+                element.classList.toggle('traversed', from >= 0 && to >= 0 && Math.max(from, to) <= simulationIndex && from !== simulationIndex);
+            });
+            if (!currentId) {
+                $('sim-step-title').textContent = 'Готово к просмотру'; $('sim-step-desc').textContent = 'Нажми «Старт» или стрелку вправо.'; $('sim-tags').textContent = '';
+                $('sim-play').innerHTML = '<i class="ph ph-play"></i> Старт';
+                return;
+            }
+            const node = simulationData[currentId];
+            const variable = node.data?.kind === 'variable' || node.name === 'variable';
+            $('sim-step-title').textContent = node.data?.text || (variable ? 'Имя переменной' : 'Пустая нода');
+            $('sim-step-desc').textContent = node.data?.desc || 'Нет дополнительного пояснения.';
+            $('sim-tags').textContent = node.data?.vars ? `Теги: ${node.data.vars}` : '';
+        }
+
+        function stopSimulation() {
+            if (simulationTimer) clearInterval(simulationTimer);
+            simulationTimer = null;
+            $('sim-play').innerHTML = '<i class="ph ph-play"></i> Старт';
+        }
+        function nextSimulationStep() {
+            if (!simulationOrder.length) return;
+            if (simulationIndex < simulationOrder.length - 1) { simulationIndex++; renderSimulationStep(); }
+            else stopSimulation();
+        }
+        function previousSimulationStep() { stopSimulation(); simulationIndex = Math.max(-1, simulationIndex - 1); renderSimulationStep(); }
+        function toggleSimulation() {
+            if (simulationTimer) { stopSimulation(); return; }
+            if (!simulationOrder.length) return;
+            if (simulationIndex >= simulationOrder.length - 1) simulationIndex = -1;
+            $('sim-play').innerHTML = '<i class="ph ph-pause"></i> Пауза';
+            if (simulationIndex < 0) nextSimulationStep();
+            simulationTimer = setInterval(nextSimulationStep, 1250);
+        }
+
+        // Drawflow events. They represent edits, not mouse movement or selection.
+        editor.on('nodeCreated', id => { renderNode(id); updateCounts(); markDirty(1); });
+        editor.on('nodeRemoved', id => {
+            if (String(selectedNodeId) === String(id)) closeInspector();
+            updateCounts(); markDirty(1);
         });
-        const project = projects.find(p => p.id === currentProjectId);
-        const importedName = parsed.project?.name || file.name.replace(/\.json$/i, '');
-        if (project && importedName) { project.name = importedName; project.autoName = false; $('project-title').value = importedName; }
-        camera = parsed.camera ? { x: Number(parsed.camera.x)||0, y: Number(parsed.camera.y)||0, zoom: Number(parsed.camera.zoom)||1 } : { x: 0, y: 0, zoom: 1 };
-        applyCamera(); queueSave(true); updateCounts(); showToast('Проект импортирован');
-      } catch (error) { console.error(error); showToast('Файл JSON не удалось прочитать'); }
-      $('file-input').value = '';
-    };
-    reader.readAsText(file);
-  }
+        editor.on('connectionCreated', () => { updateCounts(); markDirty(1); });
+        editor.on('connectionRemoved', () => { updateCounts(); markDirty(1); });
+        editor.on('nodeSelected', id => openInspector(id));
+        editor.on('nodeUnselected', () => closeInspector());
 
-  function getTraversal(data) {
-    const ids = Object.keys(data);
-    const adjacency = new Map(ids.map(id => [id, (data[id].outputs?.output_1?.connections || []).map(c => String(c.node)).filter(target => data[target])]));
-    const incoming = new Set([...adjacency.values()].flat());
-    const roots = ids.filter(id => !incoming.has(id));
-    const queue = [...roots, ...ids.filter(id => !roots.includes(id))];
-    const visited = new Set(), order = [];
-    queue.forEach(start => {
-      if (visited.has(start)) return;
-      const pending = [start];
-      while (pending.length) {
-        const id = pending.shift();
-        if (visited.has(id)) continue;
-        visited.add(id); order.push(id);
-        (adjacency.get(id) || []).forEach(next => { if (!visited.has(next)) pending.push(next); });
-      }
-    });
-    return { order, adjacency };
-  }
+        // LMB selects a node or starts/finishes a connection. It never drags a node or pans the canvas.
+        canvas.addEventListener('mousedown', event => {
+            if (event.button === 1) {
+                event.preventDefault(); event.stopImmediatePropagation();
+                createNodeAt(event.clientX, event.clientY, 'node');
+                return;
+            }
+            if (event.button === 2) {
+                event.preventDefault(); event.stopImmediatePropagation();
+                const nodeElement = event.target.closest('.drawflow-node');
+                if (nodeElement) {
+                    dragNodeId = nodeElement.id.slice(5);
+                    rightPointerMoved = false;
+                    const node = getNode(dragNodeId);
+                    if (!node) return;
+                    isDraggingNode = true;
+                    const point = canvasPoint(event.clientX, event.clientY);
+                    dragOffsetX = point.x - node.pos_x; dragOffsetY = point.y - node.pos_y;
+                    if (String(selectedNodeId) === String(dragNodeId)) $('inspector').classList.add('dragging');
+                } else {
+                    isPanning = true; rightPointerMoved = false; panStartX = event.clientX; panStartY = event.clientY;
+                    cameraStartX = editor.canvas_x; cameraStartY = editor.canvas_y;
+                }
+                canvas.style.cursor = 'grabbing';
+                return;
+            }
+            if (event.button !== 0) return;
+            if (event.target.closest('.input, .output')) {
+                closeInspector();
+                return; // let Drawflow connect ports
+            }
+            if (event.target.closest('.main-path')) return; // allow selecting a connection
+            const nodeElement = event.target.closest('.drawflow-node');
+            if (nodeElement) {
+                event.preventDefault(); event.stopImmediatePropagation();
+                selectNodeManually(nodeElement.id.slice(5));
+                return;
+            }
+            if (event.target === canvas || event.target.classList.contains('drawflow')) {
+                event.preventDefault(); event.stopImmediatePropagation();
+                deselectCanvas();
+            }
+        }, true);
 
-  function buildSimulationLayout() {
-    const data = currentData();
-    const ids = Object.keys(data);
-    if (!ids.length) return { data, order: [], positions: {}, width: 500, height: 360, edges: [] };
-    const { order, adjacency } = getTraversal(data);
-    const incoming = new Set([...adjacency.values()].flat());
-    const levels = new Map();
-    const roots = ids.filter(id => !incoming.has(id));
-    const starts = [...roots, ...ids.filter(id => !roots.includes(id))];
-    starts.forEach(start => {
-      if (levels.has(start)) return;
-      levels.set(start, 0);
-      const queue = [start];
-      while (queue.length) {
-        const id = queue.shift();
-        (adjacency.get(id) || []).forEach(next => {
-          if (!levels.has(next)) { levels.set(next, (levels.get(id) || 0) + 1); queue.push(next); }
+        window.addEventListener('mousemove', event => {
+            if (isPanning) {
+                if (Math.hypot(event.clientX - panStartX, event.clientY - panStartY) > 1) rightPointerMoved = true;
+                editor.canvas_x = cameraStartX + event.clientX - panStartX;
+                editor.canvas_y = cameraStartY + event.clientY - panStartY;
+                applyCanvasTransform();
+            } else if (isDraggingNode && dragNodeId) {
+                if (Math.hypot(event.movementX || 0, event.movementY || 0) > 0) rightPointerMoved = true;
+                const point = canvasPoint(event.clientX, event.clientY);
+                const x = point.x - dragOffsetX, y = point.y - dragOffsetY;
+                const node = getNode(dragNodeId);
+                if (node) { node.pos_x = x; node.pos_y = y; }
+                const element = document.getElementById(`node-${dragNodeId}`);
+                if (element) { element.style.left = `${x}px`; element.style.top = `${y}px`; }
+                editor.updateConnectionNodes(`node-${dragNodeId}`);
+                if (String(selectedNodeId) === String(dragNodeId)) scheduleInspectorUpdate();
+            }
         });
-      }
-    });
-    const buckets = new Map();
-    ids.forEach(id => { const level = levels.get(id) || 0; if (!buckets.has(level)) buckets.set(level, []); buckets.get(level).push(id); });
-    const positions = {};
-    [...buckets.keys()].sort((a,b)=>a-b).forEach(level => buckets.get(level).forEach((id, index) => { positions[id] = { x: 54 + level * 285, y: 52 + index * 126 }; }));
-    const maxLevel = Math.max(...[...buckets.keys()]);
-    const maxRows = Math.max(...[...buckets.values()].map(bucket => bucket.length));
-    const edges = [];
-    ids.forEach(from => (adjacency.get(from) || []).forEach(to => edges.push({ from, to })));
-    return { data, order, positions, width: 54 + (maxLevel + 1) * 285, height: Math.max(330, 52 + maxRows * 126), edges };
-  }
 
-  function truncateLabel(value, max = 27) { const text = String(value || '').trim() || 'Пустая нода'; return text.length > max ? text.slice(0, max - 1) + '…' : text; }
+        window.addEventListener('mouseup', event => {
+            if (event.button === 2 && (isPanning || isDraggingNode)) {
+                const moved = rightPointerMoved;
+                isPanning = false; isDraggingNode = false; dragNodeId = null;
+                canvas.style.cursor = 'default';                $('inspector').classList.remove('dragging');
+                rightPointerMoved = false;
+                scheduleInspectorUpdate();
+                if (moved) markCameraDirty();
+            }
+        });
 
-  function renderSimulationGraph() {
-    simLayout = buildSimulationLayout();
-    simOrder = simLayout.order;
-    simIndex = -1;
-    const svg = $('simulation-svg');
-    svg.setAttribute('viewBox', `0 0 ${simLayout.width} ${simLayout.height}`);
-    svg.setAttribute('width', simLayout.width); svg.setAttribute('height', simLayout.height);
-    if (!simOrder.length) {
-      svg.innerHTML = `<text x="50%" y="48%" text-anchor="middle" fill="#93a0ad" font-size="13">Добавь ноды, чтобы увидеть структуру</text>`;
-      renderSimulationStep(); return;
-    }
-    const edgeMarkup = simLayout.edges.map(edge => {
-      const a = simLayout.positions[edge.from], b = simLayout.positions[edge.to];
-      const x1 = a.x + 210, y1 = a.y + 38, x2 = b.x, y2 = b.y + 38;
-      const curve = Math.max(45, Math.abs(x2 - x1) * .45);
-      return `<path class="sim-edge" data-edge="${edge.from}-${edge.to}" d="M ${x1} ${y1} C ${x1+curve} ${y1}, ${x2-curve} ${y2}, ${x2} ${y2}"/>`;
-    }).join('');
-    const nodesMarkup = simOrder.map(id => {
-      const node = simLayout.data[id], p = simLayout.positions[id];
-      const variable = (node.data?.kind || node.name) === 'variable';
-      const title = escapeHtml(truncateLabel(node.data?.text));
-      return `<g class="sim-node ${variable ? 'variable' : ''}" data-sim-node="${id}" transform="translate(${p.x},${p.y})">
-        <rect width="210" height="76"/>
-        <text class="sim-kind" x="13" y="19">${variable ? 'ПЕРЕМЕННАЯ' : 'НОДА'} · #${escapeHtml(id)}</text>
-        <text x="13" y="44">${title}</text>
-        <text x="13" y="62" fill="#8e9ba8" font-size="9">${node.data?.vars ? escapeHtml(truncateLabel(node.data.vars, 32)) : ' '}</text>
-      </g>`;
-    }).join('');
-    svg.innerHTML = `<defs><marker id="sim-arrow" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L0,6 L7,3 z" fill="#748797"/></marker></defs><g>${edgeMarkup.replaceAll('<path class="sim-edge"', '<path marker-end="url(#sim-arrow)" class="sim-edge"')}</g><g>${nodesMarkup}</g>`;
-    renderSimulationStep();
-  }
+        window.addEventListener('contextmenu', event => { event.preventDefault(); event.stopImmediatePropagation(); }, true);
 
-  function renderSimulationStep() {
-    const svg = $('simulation-svg');
-    svg.querySelectorAll('.sim-node').forEach(group => {
-      const orderIndex = simOrder.indexOf(group.dataset.simNode);
-      group.classList.toggle('done', simIndex >= 0 && orderIndex < simIndex);
-      group.classList.toggle('active', simIndex >= 0 && orderIndex === simIndex);
-    });
-    svg.querySelectorAll('.sim-edge').forEach(path => {
-      const [from, to] = path.dataset.edge.split('-');
-      const fromIndex = simOrder.indexOf(from), toIndex = simOrder.indexOf(to);
-      path.classList.toggle('traversed', simIndex >= 0 && fromIndex < simIndex && toIndex <= simIndex);
-    });
-    const total = simOrder.length;
-    if (!total) {
-      $('sim-counter').textContent = 'Пока нет нод'; $('sim-current-title').textContent = 'Граф пуст';
-      $('sim-current-desc').textContent = 'Добавь первую ноду на холст или нажми на кнопку +.'; $('sim-tags').innerHTML = '<span class="help-tip">Нет активных тегов</span>';
-      $('sim-progress-fill').style.width = '0%'; $('sim-next').disabled = true; return;
-    }
-    $('sim-next').disabled = simIndex >= total - 1;
-    $('sim-counter').textContent = simIndex < 0 ? `${total} нод в структуре` : `${simIndex + 1} из ${total}`;
-    $('sim-progress-fill').style.width = `${simIndex < 0 ? 0 : ((simIndex + 1) / total) * 100}%`;
-    if (simIndex < 0) {
-      $('sim-current-title').textContent = 'Граф готов к просмотру';
-      $('sim-current-desc').textContent = 'Нажми «Старт» или «Далее», чтобы последовательно просмотреть ноды и их контекст.';
-      $('sim-tags').innerHTML = '<span class="help-tip">Нет активных тегов</span>';
-      return;
-    }
-    const id = simOrder[simIndex], node = simLayout.data[id];
-    $('sim-current-title').textContent = node.data?.text || (node.data?.kind === 'variable' ? 'Переменная без имени' : 'Пустая нода');
-    $('sim-current-desc').textContent = node.data?.desc || 'Для этой ноды не добавлено пояснение.';
-    const tags = String(node.data?.vars || '').split(/[\s,]+/).filter(Boolean);
-    $('sim-tags').replaceChildren();
-    if (!tags.length) $('sim-tags').innerHTML = '<span class="help-tip">Нет тегов</span>';
-    tags.forEach(tag => { const span = document.createElement('span'); span.className = 'sim-tag'; span.textContent = tag; $('sim-tags').appendChild(span); });
-  }
+        // Wheel zoom follows the pointer and does not require Ctrl.
+        canvas.addEventListener('wheel', event => {
+            event.preventDefault(); event.stopImmediatePropagation();
+            const rect = canvas.getBoundingClientRect();
+            const px = event.clientX - rect.left, py = event.clientY - rect.top;
+            const oldZoom = editor.zoom;
+            const delta = event.deltaMode === 1 ? event.deltaY * 16 : event.deltaMode === 2 ? event.deltaY * canvas.clientHeight : event.deltaY;
+            const nextZoom = Math.max(editor.zoom_min, Math.min(editor.zoom_max, oldZoom * Math.exp(-delta * 0.0012)));
+            if (nextZoom === oldZoom) return;
+            const worldX = (px - editor.canvas_x) / oldZoom;
+            const worldY = (py - editor.canvas_y) / oldZoom;
+            editor.zoom = nextZoom;
+            editor.canvas_x = px - worldX * nextZoom;
+            editor.canvas_y = py - worldY * nextZoom;
+            applyCanvasTransform();
+            markCameraDirty();
+        }, { passive: false, capture: true });
 
-  function stopSimulation() { if (simTimer) clearInterval(simTimer); simTimer = null; $('sim-play').innerHTML = '<i class="ph ph-play"></i> Старт'; }
-  function advanceSimulation() { if (simIndex < simOrder.length - 1) { simIndex++; renderSimulationStep(); } else { stopSimulation(); showToast('Просмотр структуры завершён'); } }
-  function toggleSimulation() {
-    if (simTimer) { stopSimulation(); return; }
-    if (!simOrder.length) return;
-    if (simIndex >= simOrder.length - 1) simIndex = -1;
-    $('sim-play').innerHTML = '<i class="ph ph-pause"></i> Пауза';
-    if (simIndex < 0) advanceSimulation();
-    simTimer = setInterval(advanceSimulation, 1150);
-  }
+        // Inspector edits: a two-character change is one write; a single edit is saved on idle.
+        ['text', 'vars', 'desc'].forEach(field => {
+            const input = $(`node-${field}`);
+            input.addEventListener('input', event => {
+                const value = event.target.value;
+                const units = Math.max(1, Math.abs(value.length - inputPrevious[field].length));
+                inputPrevious[field] = value;
+                updateNodeField(field, value, units);
+                if (field === 'text') suggestAutocomplete(value);
+            });
+        });
 
-  // Drawflow selection events: primary click is reserved for selecting and connecting.
-  editor.on('nodeSelected', id => openInspector(id));
-  editor.on('nodeUnselected', () => { if (!isDraggingNode) closeInspector(); });
-  editor.on('connectionCreated', () => { queueSave(true); updateCounts(); });
-  editor.on('connectionRemoved', () => { queueSave(true); updateCounts(); });
-  editor.on('nodeRemoved', () => { queueSave(true); updateCounts(); });
-  editor.on('nodeCreated', id => { renderNode(id); queueSave(true); updateCounts(); });
+        $('node-text').addEventListener('keydown', event => {
+            if (event.key === 'Enter' && autocompleteWord) { event.preventDefault(); applyAutocomplete(); }
+        });
+        $('autocomplete').addEventListener('mousedown', event => { event.preventDefault(); applyAutocomplete(); });
+        $('delete-node-button').addEventListener('click', deleteSelectedNode);
+        $('current-project-name').addEventListener('change', event => renameProject(event.target.value));
+        $('add-node-button').addEventListener('click', () => addAtCenter('node'));
+        $('add-variable-button').addEventListener('click', () => addAtCenter('variable'));
+        $('projects-button').addEventListener('click', openProjectsModal);
+        $('new-project-button').addEventListener('click', () => createNewProject());
+        $('export-button').addEventListener('click', exportJSON);
+        $('import-button').addEventListener('click', () => $('file-input').click());
+        $('file-input').addEventListener('change', importJSON);
+        $('ai-button').addEventListener('click', () => { flushSave(); $('ai-export-text').value = buildAIExport(); $('export-modal').style.display = 'flex'; });
+        $('copy-ai-button').addEventListener('click', copyAIText);
+        $('simulation-button').addEventListener('click', () => { stopSimulation(); renderSimulationGraph(); $('simulation-modal').style.display = 'flex'; });
+        $('sim-play').addEventListener('click', toggleSimulation);
+        $('sim-next').addEventListener('click', () => { stopSimulation(); nextSimulationStep(); });
+        $('sim-prev').addEventListener('click', previousSimulationStep);
+        $('sim-reset').addEventListener('click', () => { stopSimulation(); simulationIndex = -1; renderSimulationStep(); });
+        document.querySelectorAll('[data-close]').forEach(button => button.addEventListener('click', () => {
+            const modal = button.closest('.modal'); if (modal) { modal.style.display = 'none'; if (modal.id === 'simulation-modal') stopSimulation(); }
+        }));
+        document.querySelectorAll('.modal').forEach(modal => modal.addEventListener('mousedown', event => {
+            if (event.target === modal) { modal.style.display = 'none'; if (modal.id === 'simulation-modal') stopSimulation(); }
+        }));
+        $('inspector-close').addEventListener('click', closeInspector);
 
-  // Right mouse button: manually move nodes or pan the full canvas without triggering Drawflow's left-drag behavior.
-  canvas.addEventListener('contextmenu', event => event.preventDefault());
-  canvas.addEventListener('mousedown', event => {
-    if (event.button === 1) {
-      event.preventDefault(); event.stopImmediatePropagation();
-      const point = canvasPoint(event.clientX, event.clientY);
-      createNodeAt(point.x - 112, point.y - 42, 'node');
-      return;
-    }
-    if (event.button !== 2) return;
-    event.preventDefault(); event.stopImmediatePropagation();
-    const nodeElement = event.target.closest('.drawflow-node');
-    pointerStartX = event.clientX; pointerStartY = event.clientY;
-    if (nodeElement) {
-      dragNodeId = nodeElement.id.replace('node-', '');
-      const node = getNode(dragNodeId);
-      if (!node) return;
-      isDraggingNode = true;
-      const rect = canvas.getBoundingClientRect();
-      dragStartX = (event.clientX - rect.left - camera.x) / camera.zoom - node.pos_x;
-      dragStartY = (event.clientY - rect.top - camera.y) / camera.zoom - node.pos_y;
-      if (String(selectedNodeId) === String(dragNodeId)) $('inspector').classList.add('dragging');
-      canvas.style.cursor = 'grabbing';
-    } else {
-      isPanning = true; panStartX = event.clientX; panStartY = event.clientY;
-      cameraStartX = camera.x; cameraStartY = camera.y; canvas.style.cursor = 'grabbing';
-    }
-  }, true);
+        window.addEventListener('keydown', event => {
+            const editing = ['INPUT', 'TEXTAREA'].includes(document.activeElement?.tagName) || document.activeElement?.isContentEditable;
+            if (!editing && (event.key === 'Backspace' || event.key === 'Delete') && selectedNodeId) {
+                event.preventDefault(); deleteSelectedNode(); return;
+            }
+            if (editing || event.ctrlKey || event.metaKey || event.altKey) return;
+            const key = event.key.toLowerCase();
+            if (key === 'n') addAtCenter('node');
+            if (key === 'v') addAtCenter('variable');
+            if (key === 'escape') {
+                closeInspector();
+                document.querySelectorAll('.modal').forEach(modal => { modal.style.display = 'none'; if (modal.id === 'simulation-modal') stopSimulation(); });
+            }
+        });
 
-  window.addEventListener('mousemove', event => {
-    if (isPanning) {
-      camera.x = cameraStartX + event.clientX - panStartX;
-      camera.y = cameraStartY + event.clientY - panStartY;
-      applyCamera();
-    } else if (isDraggingNode && dragNodeId) {
-      const point = canvasPoint(event.clientX, event.clientY);
-      const x = point.x - dragStartX, y = point.y - dragStartY;
-      const node = getNode(dragNodeId);
-      if (node) { node.pos_x = x; node.pos_y = y; }
-      const element = document.getElementById(`node-${dragNodeId}`);
-      if (element) { element.style.left = `${x}px`; element.style.top = `${y}px`; }
-      editor.updateConnectionNodes(`node-${dragNodeId}`);
-      if (String(selectedNodeId) === String(dragNodeId)) scheduleInspectorPosition();
-    }
-  });
-  window.addEventListener('mouseup', event => {
-    if (event.button === 2 && (isPanning || isDraggingNode)) {
-      const movedNode = isDraggingNode;
-      isPanning = false; isDraggingNode = false; dragNodeId = null;
-      canvas.style.cursor = 'default'; $('inspector').classList.remove('dragging');
-      if (movedNode) queueSave(true);
-      scheduleInspectorPosition();
-    }
-  });
+        window.addEventListener('resize', scheduleInspectorUpdate);
+        window.addEventListener('beforeunload', () => { const cameraPending = !!cameraSaveTimer; clearTimeout(saveTimer); clearTimeout(cameraSaveTimer); if (cameraPending) markDirty(1); flushSave(); });
 
-  canvas.addEventListener('wheel', event => {
-    event.preventDefault(); event.stopImmediatePropagation();
-    const factor = event.deltaY < 0 ? 1.1 : 1 / 1.1;
-    setZoom(camera.zoom * factor, event.clientX, event.clientY);
-  }, { passive: false, capture: true });
+        function initProjects() {
+            let stored = null;
+            for (const key of [STORAGE_KEY, ...FALLBACK_KEYS]) {
+                try {
+                    const candidate = JSON.parse(localStorage.getItem(key) || 'null');
+                    if (candidate?.projects?.length) { stored = candidate; break; }
+                } catch (error) { console.warn('Grafa storage parse error:', error); }
+            }
+            if (stored?.projects?.length) {
+                projects = stored.projects.map(project => ({
+                    ...project,
+                    id: project.id || `proj_${Date.now()}_${Math.random().toString(36).slice(2,7)}`,
+                    name: project.name || 'Без названия',
+                    autoName: project.autoName ?? false,
+                    data: normalizeGraph(project.data),
+                    camera: project.camera || { x: 0, y: 0, zoom: 1 },
+                    updated: project.updated || Date.now()
+                }));
+                currentProjectId = projects.some(project => project.id === stored.currentProjectId) ? stored.currentProjectId : projects[0].id;
+                loadProject(currentProjectId);
+            } else {
+                createNewProject(true);
+            }
+            updateCounts();
+            setSaveState('saved');
+        }
 
-  // Inspector inputs are saved continuously; no explicit save button is needed.  $('node-text').addEventListener('input', event => { updateNodeField('text', event.target.value); suggestWord(event.target.value); });
-  $('node-vars').addEventListener('input', event => updateNodeField('vars', event.target.value));
-  $('node-desc').addEventListener('input', event => updateNodeField('desc', event.target.value));
-  $('node-text').addEventListener('keydown', event => { if (event.key === 'Enter' && suggestion) { event.preventDefault(); applyAutocomplete(); } });
-  $('autocomplete').addEventListener('mousedown', event => { event.preventDefault(); applyAutocomplete(); });
-  $('inspector-close').addEventListener('click', closeInspector);
-  $('delete-node-button').addEventListener('click', deleteSelectedNode);
-
-  $('project-title').addEventListener('change', event => renameProject(event.target.value));
-  $('projects-button').addEventListener('click', () => { renderProjects(); openModal('projects-modal'); });
-  $('new-project-button').addEventListener('click', () => createProject());
-  $('add-node-button').addEventListener('click', () => addAtCenter('node'));
-  $('add-variable-button').addEventListener('click', () => addAtCenter('variable'));
-  $('fit-button').addEventListener('click', fitGraph);
-  $('center-button').addEventListener('click', () => { camera = { x: 0, y: 0, zoom: 1 }; applyCamera(); queueSave(); });
-  $('zoom-in').addEventListener('click', () => setZoom(camera.zoom * 1.15));
-  $('zoom-out').addEventListener('click', () => setZoom(camera.zoom / 1.15));
-  $('help-button').addEventListener('click', () => openModal('help-modal'));
-  $('import-button').addEventListener('click', () => $('file-input').click());
-  $('file-input').addEventListener('change', event => { if (event.target.files?.[0]) importFile(event.target.files[0]); });
-  $('export-button').addEventListener('click', () => { const projectName = projects.find(p => p.id === currentProjectId)?.name; downloadFile(`${safeFilename(projectName)}.json`, JSON.stringify(exportProjectObject(), null, 2)); showToast('JSON-файл скачан'); });
-  $('ai-button').addEventListener('click', () => { $('ai-export-text').value = buildAIExport(); openModal('export-modal'); });
-  $('copy-ai-button').addEventListener('click', () => copyText($('ai-export-text').value));
-  $('simulate-button').addEventListener('click', () => { stopSimulation(); renderSimulationGraph(); openModal('simulation-modal'); });
-  $('sim-play').addEventListener('click', toggleSimulation);
-  $('sim-next').addEventListener('click', () => { stopSimulation(); advanceSimulation(); });
-  $('sim-reset').addEventListener('click', () => { stopSimulation(); simIndex = -1; renderSimulationStep(); });
-
-  window.addEventListener('keydown', event => {
-    const editing = ['INPUT','TEXTAREA'].includes(document.activeElement?.tagName) || document.activeElement?.isContentEditable;
-    if (!editing && (event.key === 'Backspace' || event.key === 'Delete') && selectedNodeId) { event.preventDefault(); deleteSelectedNode(); return; }
-    if (editing || event.ctrlKey || event.metaKey || event.altKey) return;
-    const key = event.key.toLowerCase();
-    if (key === 'n') addAtCenter('node');
-    if (key === 'v') addAtCenter('variable');
-    if (key === 'f') fitGraph();
-    if (key === 'escape') { closeInspector(); document.querySelectorAll('.modal.open').forEach(modal => closeModal(modal.id)); }
-  });
-
-  window.addEventListener('resize', scheduleInspectorPosition);
-  window.addEventListener('beforeunload', () => { clearTimeout(saveTimer); captureCurrentProject(); persistProjects(); });
-
-  function init() {
-    let stored = null;
-    try { stored = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null'); } catch (error) { console.warn('Grafa storage parse failed', error); }
-    if (!stored) {
-      try {
-        const legacy = JSON.parse(localStorage.getItem(LEGACY_KEY) || 'null');
-        if (legacy?.projects?.length) stored = legacy;
-      } catch (error) { console.warn('Legacy data parse failed', error); }
-    }
-    if (stored?.projects?.length) {
-      projects = stored.projects.map(project => ({
-        ...project, name: project.name || 'Без названия', autoName: project.autoName ?? false,
-        data: normalizeDrawflow(project.data), camera: project.camera || { x:0, y:0, zoom:1 }, updated: project.updated || Date.now()
-      }));
-      currentProjectId = projects.some(p => p.id === stored.currentProjectId) ? stored.currentProjectId : projects[0].id;
-      loadProject(currentProjectId);
-    } else {
-      createProject(true);
-    }
-    updateCounts();
-  }
-
-  init();
-})();
-</script>
+        initProjects();
+    })();
+    </script>
 </body>
 </html>
